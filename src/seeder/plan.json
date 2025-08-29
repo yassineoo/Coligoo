@@ -1,0 +1,26 @@
+[
+    {
+        "name": "Plan 1",
+        "price": 800,
+        "duration": 3,
+        "visibilty": "visibilty",
+        "cout": "cout",
+        "reduction": 20
+    },
+    {
+        "name": "Plan 2",
+        "price": 1200,
+        "duration": 6,
+        "visibilty": "visibilty",
+        "cout": "cout",
+        "reduction": 20
+    },
+    {
+        "name": "Plan 3",
+        "price": 2000,
+        "duration": 12,
+        "visibility": "visibilty",
+        "cout": "cout",
+        "reduction": 20
+    }
+]
