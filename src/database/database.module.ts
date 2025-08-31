@@ -5,6 +5,7 @@ import { EnvConfigModule } from 'src/config/config.module';
 import { DatabaseConfig } from 'src/config/database.config';
 import { AdminNotification } from 'src/notification/entities/admin-notification.entity';
 import { Notification } from 'src/notification/entities/notification.entity';
+import { OrderItem } from 'src/orders/entities/order-items';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrderTrackingService } from 'src/orders/tracking.service';
 import { Product } from 'src/products/entities/product.entity';
@@ -36,7 +37,8 @@ import { Or } from 'typeorm';
           AdminNotification,
           Order,
           OrderTrackingService,
-          Product
+          Product,
+          OrderItem
         ],
       }),
       inject: [DatabaseConfig],

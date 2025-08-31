@@ -13,4 +13,11 @@ export class ClientRegisterDto extends RegisterDto {
   @IsString()
   @Matches(/^[0-9]{2}\/[0-9]{2}\/[0-9]{4}$/)
   dob?: string;
+
+
+    @ApiProperty({ example: 'QSDQSDQSDQSQD' })
+  @IsOptional()
+  @IsString()
+  firebaseUserId?: string;
+  
 }

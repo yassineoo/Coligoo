@@ -12,7 +12,7 @@ import { MailService } from './mail.service';
 import { LoginDto } from './dto/login.dto';
 import { Hash } from 'src/users/utils/hash';
 import { VerifyEmailDto } from './dto/verify-email.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import { changePhoneDto, ResetPasswordDto } from './dto/reset-password.dto';
 import { ClientRegisterDto } from './dto/client-register.dto';
 
 import { Request } from 'express';
@@ -33,7 +33,7 @@ export class AuthService {
   async registerClient(registerDto: ClientRegisterDto) {
     const user = await this.usersService.createClient({
       ...registerDto,
-      role: UserRole.CLIENT,
+      role: UserRole.DELIVERYMAN,
     });
     const code = await this.otpService.createOtp(
       user.email,
@@ -49,7 +49,7 @@ export class AuthService {
       email: user.email,
     });
 
-    return { msg: 'Inscription réussie', token };
+    return { msg: 'Inscription réussie', token ,userInfo:user };
   }
 
   async registerVendor(registerDto: RegisterDto) {
@@ -74,6 +74,74 @@ export class AuthService {
     return { msg: 'Inscription réussie', token };
   }
 
+    async changePhone(dto: changePhoneDto, userId: number) {
+  const { phone, firebaseUserId } = dto;
+
+  // Check if the new phone number already exists
+  const existingUser = await this.usersService.findUserByPhone(phone, true);
+  if (existingUser && existingUser.id !== userId) {
+    throw new BadRequestException({
+      fr: 'Ce numéro de téléphone est déjà utilisé',
+      ar: 'رقم الهاتف هذا مستخدم بالفعل',
+    });
+  }
+
+  // Find the current user
+  const user = await this.usersService.findOne(userId);
+  if (!user) {
+    throw new BadRequestException('Utilisateur introuvable');
+  }
+
+  // Update user's phone number and Firebase UID
+  const updateData = {
+    phoneNumber: phone,
+    firebaseUserId: firebaseUserId,
+    isPhoneVerified: true, // Assuming phone verification happens via Firebase
+  };
+
+  await this.usersService.update(userId, updateData);
+
+  return {
+    msg: {
+      fr: 'Numéro de téléphone modifié avec succès',
+      ar: 'تم تغيير رقم الهاتف بنجاح',
+    },
+    phone: phone,
+  };
+}
+
+
+
+  async checkPhoneExists(phone: string) {
+  try {
+    const user = await this.usersService.findUserByPhone(phone, true);
+    
+    if (user) {
+      return {
+        exists: true,
+        message: {
+          fr: 'Numéro de téléphone trouvé',
+          ar: 'تم العثور على رقم الهاتف',
+        },
+      
+      };
+    } else {
+      return {
+        exists: false,
+        message: {
+          fr: 'Numéro de téléphone non trouvé',
+          ar: 'لم يتم العثور على رقم الهاتف',
+        },
+       
+      };
+    }
+  } catch (error) {
+    throw new BadRequestException({
+      fr: 'Erreur lors de la vérification du numéro',
+      ar: 'خطأ في التحقق من الرقم',
+    });
+  }
+}
   /*
 
 

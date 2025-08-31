@@ -74,6 +74,9 @@ export class User {
   @Column({ nullable: true })
   deviceToken: string;
 
+  @Column({ nullable: true })
+  firebaseUserId: string;
+
   @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Notification[];
 }

@@ -9,3 +9,27 @@ export class ResetPasswordDto extends VerifyEmailDto {
     @MinLength(8)
     newPassword: string;
 }
+
+export class changePhoneDto {
+  @ApiProperty({
+    example: '+213551234567',
+    description: 'User phone number in international format',
+  })
+  phone: string;
+
+  @ApiProperty({
+    example: 'firebase-uid-123456789',
+    description: 'Unique Firebase user ID for authentication',
+  })
+  firebaseUserId: string;
+
+
+}
+
+
+
+
+// New DTOs for phone-based authentication
+export class SendPhoneOtpDto {
+  phone: string;
+}

@@ -5,10 +5,12 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { City } from 'src/wilaya/entities/city.entity';
 import { User } from 'src/users/entities/user.entity';
+import { OrderItem } from './order-items';
 
 export enum OrderStatus {
   PENDING = 'pending',
@@ -147,4 +149,32 @@ export class Order {
   @ApiPropertyOptional({ example: '2025-08-17T08:00:00Z' })
   @Column({ nullable: true })
   cancelledAt: Date;
+
+
+
+
+    // NEW: Replace productList with orderItems relationship
+  @ApiProperty({ 
+    description: 'Products in this order',
+    type: () => [OrderItem] 
+  })
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { 
+    cascade: true,
+    eager: true 
+  })
+  orderItems: OrderItem[];
+
+  
+  // Computed properties
+  get totalProductsPrice(): number {
+    return this.orderItems?.reduce((sum, item) => sum + item.totalPrice, 0) || 0;
+  }
+
+  get totalOrderPrice(): number {
+    return this.totalProductsPrice + Number(this.shippingFee || 0);
+  }
+
+  get totalItems(): number {
+    return this.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  }
 }

@@ -59,6 +59,27 @@ export class UsersService {
     });
   }
 
+
+    async findUserByPhone(phone: string, selectPassword: boolean = false) {
+    return await this.usersRepository.findOne({
+      where: { phoneNumber: phone },
+      select: selectPassword
+        ? [
+            'password',
+            'id',
+            'email',
+            'role',
+            'nom',
+            'prenom',
+            'isEmailVerified',
+            'dob',
+            'imgUrl',
+            'sex',
+            'blocked',
+          ]
+        : undefined,
+    });
+  }
   async findAll(userFilterDto: UserFilterDto) {
     const [users, count] = await this.usersRepository.findAndCount({
       where: [

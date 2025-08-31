@@ -7,12 +7,14 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder, In, Between } from 'typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
-import { CreateOrderDto } from './dto/create-order.dto';
+import { CreateOrderDto, OrderItemsDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { User } from 'src/users/entities/user.entity';
 import { OrderTrackingService } from './tracking.service';
 import { BulkUpdateOrderDto, OrderFilterDto, PaginatedResult } from './dto/dto';
 import { UserRole } from 'src/common/types/roles.enum';
+import { OrderItem } from './entities/order-items';
+import { SharedOrdersService } from './shared.service';
 
 @Injectable()
 export class OrdersService {
@@ -21,42 +23,17 @@ export class OrdersService {
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(OrderItem)
+    private readonly orderItemRepository: Repository<OrderItem>,
     private readonly trackingService: OrderTrackingService, // private readonly notificationService: NotificationService, //private readonly eventEmitter: EventEmitter2,
+    private readonly sharedOrder:SharedOrdersService
   ) {}
 
-  async create(createOrderDto: CreateOrderDto, user: User): Promise<Order> {
-    // Generate unique order ID
-    const orderId = await this.generateOrderId();
 
-    const order = this.orderRepository.create({
-      ...createOrderDto,
-      orderId,
-      sender: user,
-    });
 
-    // Calculate shipping fee based on cities and weight
-    order.shippingFee = await this.calculateShippingFee(
-      createOrderDto.fromCityId,
-      createOrderDto.toCityId,
-      createOrderDto.weight,
-    );
 
-    const savedOrder = await this.orderRepository.save(order);
 
-    // Create initial tracking entry
-    await this.trackingService.addTrackingEntry(savedOrder.id, {
-      status: OrderStatus.PENDING,
-      location: savedOrder.fromCity.name,
-      note: 'Order created and awaiting confirmation',
-    });
-
-    // Emit event for notifications
-    //this.eventEmitter.emit('order.created', savedOrder);
-
-    return savedOrder;
-  }
-
-  async findAllWithFilters(
+async findAllWithFilters(
     filterDto: OrderFilterDto,
     user: User,
   ): Promise<PaginatedResult<Order>> {
@@ -119,33 +96,44 @@ export class OrdersService {
       });
     }
 
+    // Fix: Replace ILIKE with LIKE for MySQL/MariaDB compatibility
     if (search) {
       query = query.andWhere(
-        '(order.orderId ILIKE :search OR order.firstname ILIKE :search OR order.lastName ILIKE :search OR order.contactPhone ILIKE :search)',
+        '(order.orderId LIKE :search OR order.firstname LIKE :search OR order.lastName LIKE :search OR order.contactPhone LIKE :search)',
         { search: `%${search}%` },
       );
     }
 
-    // Apply sorting
-    query = query.orderBy(`order.${sortBy}`, sortOrder);
+    // Apply sorting with validation
+    const allowedSortFields = ['createdAt', 'updatedAt', 'status', 'price', 'orderId'];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    
+    query = query.orderBy(`order.${sortField}`, sortDirection);
 
-    // Apply pagination
-    const offset = (page - 1) * limit;
-    query = query.skip(offset).take(limit);
+    // Apply pagination with validation
+    const validatedPage = Math.max(1, page);
+    const validatedLimit = Math.min(Math.max(1, limit), 100); // Cap at 100 items per page
+    const offset = (validatedPage - 1) * validatedLimit;
+    
+    query = query.skip(offset).take(validatedLimit);
 
-    const [data, total] = await query.getManyAndCount();
+    try {
+      const [data, total] = await query.getManyAndCount();
 
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        lastPage: Math.ceil(total / limit),
-        limit,
-      },
-    };
+      return {
+        data,
+        meta: {
+          total,
+          page: validatedPage,
+          lastPage: Math.ceil(total / validatedLimit),
+          limit: validatedLimit,
+        },
+      };
+    } catch (error) {
+      throw new BadRequestException(`Failed to retrieve orders: ${error.message}`);
+    }
   }
-
   async findVendorOrders(
     vendorId: number,
     filterDto: OrderFilterDto,
@@ -183,6 +171,8 @@ export class OrdersService {
       .leftJoinAndSelect('order.deliveryman', 'deliveryman')
       .leftJoinAndSelect('order.fromCity', 'fromCity')
       .leftJoinAndSelect('order.toCity', 'toCity')
+      .leftJoinAndSelect('order.orderItems', 'orderItems')
+
       .where('order.id = :id', { id });
 
     // Apply role-based access control
@@ -624,46 +614,8 @@ export class OrdersService {
     };
   }
 
-  // Private helper methods
 
-  private async generateOrderId(): Promise<string> {
-    const year = new Date().getFullYear();
-    const count = await this.orderRepository.count({
-      where: {
-        createdAt: Between(
-          new Date(`${year}-01-01`),
-          new Date(`${year}-12-31`),
-        ),
-      },
-    });
 
-    return `ORD-${year}-${String(count + 1).padStart(6, '0')}`;
-  }
-
-  private async calculateShippingFee(
-    fromCityId: number,
-    toCityId: number,
-    weight: number = 1,
-  ): Promise<number> {
-    // This would typically integrate with a shipping calculator service
-    // For now, we'll use a simple calculation based on distance and weight
-
-    const baseRate = 300; // Base shipping fee in DZD
-    const weightMultiplier = weight * 50; // 50 DZD per kg
-    const distanceMultiplier = fromCityId !== toCityId ? 200 : 0; // Inter-city fee
-
-    // Special rates for specific routes (could be stored in database)
-    const specialRoutes = {
-      [`${fromCityId}-${toCityId}`]: 150, // Express routes
-    };
-
-    const specialRate = specialRoutes[`${fromCityId}-${toCityId}`] || 0;
-
-    return Math.max(
-      baseRate + weightMultiplier + distanceMultiplier - specialRate,
-      200,
-    );
-  }
 
   private validateStatusTransition(
     currentStatus: OrderStatus,
@@ -1344,31 +1296,6 @@ export class OrdersService {
     throw new BadRequestException('Order templates not implemented yet');
   }
 
-  async duplicateOrder(orderId: number, user: User): Promise<Order> {
-    const originalOrder = await this.findOneWithPermission(orderId, user);
 
-    const duplicateData: CreateOrderDto = {
-      orderId: '', // Will be generated in the create() method
-      firstname: originalOrder.firstname,
-      lastName: originalOrder.lastName,
-      contactPhone: originalOrder.contactPhone,
-      contactPhone2: originalOrder.contactPhone2,
-      address: originalOrder.address,
-      note:originalOrder.note,
-      fromCityId: originalOrder.fromCity.id,
-      toCityId: originalOrder.toCity.id,
-      productList: originalOrder.productList,
-      price: originalOrder.price,
-      weight: originalOrder.weight,
-      height: originalOrder.height,
-      width: originalOrder.width,
-      length: originalOrder.length,
-      isStopDesk: originalOrder.isStopDesk,
-      freeShipping: originalOrder.freeShipping,
-      hasExchange: originalOrder.hasExchange,
-      paymentType: originalOrder.paymentType,
-    };
 
-    return this.create(duplicateData, user);
-  }
 }

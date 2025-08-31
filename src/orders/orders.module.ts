@@ -8,14 +8,18 @@ import { User } from 'src/users/entities/user.entity';
 import { OrderTracking } from './entities/order-tracking.entity';
 import { OrderTrackingService } from './tracking.service';
 import { UsersModule } from 'src/users/users.module';
+import { OrderItem } from './entities/order-items';
+import { Product } from 'src/products/entities/product.entity';
+import { SharedOrdersService } from './shared.service';
+import { OrdersOperationsService } from './orders.operations.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Order, OrderTracking]),
+    TypeOrmModule.forFeature([User, Order, OrderTracking,OrderItem,Product]),
     EnvConfigModule,
     UsersModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, OrderTrackingService],
+  providers: [OrdersService, OrderTrackingService,SharedOrdersService,OrdersOperationsService],
 })
 export class OrdersModule {}

@@ -35,13 +35,17 @@ import {
   OrderFilterDto,
   PaginatedResult,
 } from './dto/dto';
+import { OrdersOperationsService } from './orders.operations.service';
 
 @ApiTags('Orders')
 @Controller('orders')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(private readonly ordersService: OrdersService ,
+
+    private readonly ordersOperationsService: OrdersOperationsService ,
+  ) {}
 
   @Post()
   @Roles(UserRole.VENDOR, UserRole.ADMIN)
@@ -57,7 +61,7 @@ export class OrdersController {
     @Body() createOrderDto: CreateOrderDto,
     @Request() req: any,
   ): Promise<Order> {
-    return this.ordersService.create(createOrderDto, req.user);
+    return this.ordersOperationsService.create(createOrderDto, req.user);
   }
 
   @Get()
