@@ -30,49 +30,122 @@ export class AuthService {
     private readonly adminNotificationService: AdminNotificationService,
   ) {}
 
-  async registerClient(registerDto: ClientRegisterDto) {
-    const user = await this.usersService.createClient({
-      ...registerDto,
-      role: UserRole.DELIVERYMAN,
-    });
-    const code = await this.otpService.createOtp(
-      user.email,
-      OtpType.VERIFY_EMAIL,
-    );
-    this.mailService.sendVerficationCodeEmail(
-      user.email,
-      code.toString(),
-      OtpType.VERIFY_EMAIL,
-    );
-    const token = await this.jwtService.signAsync({
-      id: user.id,
-      email: user.email,
-    });
+async registerClient(registerDto: ClientRegisterDto) {
+  const user = await this.usersService.createClient({
+    ...registerDto,
+    role: UserRole.DELIVERYMAN,
+  });
+  
+  const code = await this.otpService.createOtp(
+    user.email,
+    OtpType.VERIFY_EMAIL,
+  );
+  
+  this.mailService.sendVerficationCodeEmail(
+    user.email,
+    code.toString(),
+    OtpType.VERIFY_EMAIL,
+  );
+  
+  const token = await this.jwtService.signAsync({
+    id: user.id,
+    email: user.email,
+  });
 
-    return { msg: 'Inscription réussie', token ,userInfo:user };
+  // Get unified user info
+  const userInfo = await this.usersService.getUserInfo(user.id);
+
+  return { 
+    msg: 'Inscription réussie', 
+    token, 
+    userInfo 
+  };
+}
+
+async login(loginDto: LoginDto) {
+  const user = await this.usersService.findUserByEmail(loginDto.email, true);
+  
+  if (!user || !user.password) {
+    throw new BadRequestException({
+      fr: 'Email ou mot de passe incorrect',
+      ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+    });
   }
-
-  async registerVendor(registerDto: RegisterDto) {
-    const user = await this.usersService.createClient({
-      ...registerDto,
-      role: UserRole.VENDOR,
+  
+  const isPasswordValid = await Hash.compare(
+    loginDto.password,
+    user.password,
+  );
+  
+  if (!isPasswordValid) {
+    throw new BadRequestException({
+      fr: 'Email ou mot de passe incorrect',
+      ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
     });
-    const code = await this.otpService.createOtp(
-      user.email,
-      OtpType.VERIFY_EMAIL,
-    );
-    this.mailService.sendVerficationCodeEmail(
-      user.email,
-      code.toString(),
-      OtpType.VERIFY_EMAIL,
-    );
-    const token = await this.jwtService.signAsync({
-      id: user.id,
-      email: user.email,
-    });
-
-    return { msg: 'Inscription réussie', token };
   }
+  
+  if (user.blocked) {
+    throw new BadRequestException({
+      fr: 'Votre compte a été bloqué !',
+      ar: 'تم حظر حسابك',
+    });
+  }
+  
+  const token = await this.jwtService.signAsync({
+    id: user.id,
+    email: user.email,
+  });
+  
+  if (loginDto.deviceToken) {
+    await this.usersService.update(user.id, {
+      deviceToken: loginDto.deviceToken,
+    });
+  }
+  
+  // Get unified user info after potential device token update
+  const userInfo = await this.usersService.getUserInfo(user.id);
+  
+
+  
+  
+  return {
+    msg: 'Connexion réussie',
+    token,
+    userInfo,
+  };
+}
+
+async registerVendor(registerDto: RegisterDto) {
+  const user = await this.usersService.createClient({
+    ...registerDto,
+    role: UserRole.VENDOR,
+  });
+  
+  const code = await this.otpService.createOtp(
+    user.email,
+    OtpType.VERIFY_EMAIL,
+  );
+  
+  this.mailService.sendVerficationCodeEmail(
+    user.email,
+    code.toString(),
+    OtpType.VERIFY_EMAIL,
+  );
+  
+  const token = await this.jwtService.signAsync({
+    id: user.id,
+    email: user.email,
+  });
+
+  // Get unified user info
+  const userInfo = await this.usersService.getUserInfo(user.id);
+
+  return { 
+    msg: 'Inscription réussie', 
+    token, 
+    userInfo 
+  };
+}
 
     async changePhone(dto: changePhoneDto, userId: number) {
   const { phone, firebaseUserId } = dto;
@@ -173,69 +246,7 @@ export class AuthService {
     }
     return { msg: 'Inscription réussie', token };
   }*/
-  async login(loginDto: LoginDto) {
-    const user = await this.usersService.findUserByEmail(loginDto.email, true);
-    if (!user || !user.password) {
-      throw new BadRequestException({
-        fr: 'Email ou mot de passe incorrect',
-        ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
-      });
-    }
-    const isPasswordValid = await Hash.compare(
-      loginDto.password,
-      user.password,
-    );
-    if (!isPasswordValid) {
-      throw new BadRequestException({
-        fr: 'Email ou mot de passe incorrect',
-        ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
-      });
-    }
-    const token = await this.jwtService.signAsync({
-      id: user.id,
-      email: user.email,
-    });
-    if (loginDto.deviceToken) {
-      await this.usersService.update(user.id, {
-        deviceToken: loginDto.deviceToken,
-      });
-    }
-    if (user.blocked) {
-      throw new BadRequestException({
-        fr: 'Votre compte a été bloqué !',
-        ar: 'تم حظر حسابك',
-      });
-    }
-    /*
-    if (user.role === Role.ARTISAN) {
-      const artisan = await this.artisanService.findOne(user.id);
-      artisanInfo = {
-        isProfileCompleted: artisan.isProfileCompleted,
-        isProfileVerified: artisan.isProfileVerified,
-        hasBadge: artisan.badgeStatus === BadgeStatus.ACTIF,
-        profileCompletionStep: artisan.profileCompletionStep,
-        longitude: artisan.longitude,
-        latitude: artisan.latitude,
-      };
-    }
-    */
-    return {
-      msg: 'Connexion réussie',
-      token,
-      userInfo: {
-        id: user.id,
-        email: user.email,
-        nom: user.nom,
-        prenom: user.prenom,
-        role: user.role,
-        isEmailVerified: user.isEmailVerified,
-        phoneNumber: user.phoneNumber ?? null,
-        imgUrl: user.imgUrl ?? null,
-        sex: user.sex ?? null,
-        dob: user.dob?.toISOString().split('T')[0] ?? null,
-      },
-    };
-  }
+
   async adminLogin(loginDto: LoginDto) {
     const user = await this.usersService.findUserByEmail(loginDto.email, true);
     if (!user || !user.password) {

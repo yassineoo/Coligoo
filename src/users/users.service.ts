@@ -208,26 +208,45 @@ export class UsersService {
     return { msg: 'Mot de passe modifiee avec succes !' };
   }
 
-  async getUserInfo(userId: number) {
-    const user = await this.usersRepository.findOne({
-      where: {
-        id: userId,
-      },
-      // relations: ['artisan'],
-    });
+async getUserInfo(userId: number) {
+  const user = await this.usersRepository.findOne({
+    where: {
+      id: userId,
+    },
+    relations: ['hubAdmin', 'hubEmployees'], // Add relations if needed
+  });
 
-    return {
-      id: user.id,
-      nom: user.nom,
-      prenom: user.prenom,
-      role: user.role,
-      dob: user.dob?.toISOString().split('T')[0] ?? null,
-      sex: user.sex ?? null,
-      email: user.email,
-      isEmailVerified: user.isEmailVerified,
-      imgUrl: user.imgUrl,
-    };
+  if (!user) {
+    throw new Error('User not found');
   }
+
+  return {
+    id: user.id,
+    email: user.email,
+    nom: user.nom,
+    prenom: user.prenom,
+    fullName: user.fullName,
+    role: user.role,
+    permissions: user.permissions,
+    hubId: user.hubId,
+    hubAdmin: user.hubAdmin ? {
+      id: user.hubAdmin.id,
+      nom: user.hubAdmin.nom,
+      prenom: user.hubAdmin.prenom,
+      email: user.hubAdmin.email,
+    } : null,
+    createdAt: user.createdAt,
+    dob: user.dob?.toISOString().split('T')[0] ?? null,
+    phoneNumber: user.phoneNumber,
+    sex: user.sex ?? null,
+    isEmailVerified: user.isEmailVerified,
+    imgUrl: user.imgUrl,
+    blocked: user.blocked,
+    deviceToken: user.deviceToken,
+    // Optional: include count of hub employees if user is a hub admin
+    hubEmployeesCount: user.hubEmployees?.length ?? 0,
+  };
+}
 
   async delete(id: number) {
     const user = await this.usersRepository.findOneBy({ id });
