@@ -26,14 +26,10 @@ export class OrdersService {
     @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
     private readonly trackingService: OrderTrackingService, // private readonly notificationService: NotificationService, //private readonly eventEmitter: EventEmitter2,
-    private readonly sharedOrder:SharedOrdersService
+    private readonly sharedOrder: SharedOrdersService,
   ) {}
 
-
-
-
-
-async findAllWithFilters(
+  async findAllWithFilters(
     filterDto: OrderFilterDto,
     user: User,
   ): Promise<PaginatedResult<Order>> {
@@ -105,17 +101,23 @@ async findAllWithFilters(
     }
 
     // Apply sorting with validation
-    const allowedSortFields = ['createdAt', 'updatedAt', 'status', 'price', 'orderId'];
+    const allowedSortFields = [
+      'createdAt',
+      'updatedAt',
+      'status',
+      'price',
+      'orderId',
+    ];
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
     const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-    
+
     query = query.orderBy(`order.${sortField}`, sortDirection);
 
     // Apply pagination with validation
     const validatedPage = Math.max(1, page);
     const validatedLimit = Math.min(Math.max(1, limit), 100); // Cap at 100 items per page
     const offset = (validatedPage - 1) * validatedLimit;
-    
+
     query = query.skip(offset).take(validatedLimit);
 
     try {
@@ -131,7 +133,9 @@ async findAllWithFilters(
         },
       };
     } catch (error) {
-      throw new BadRequestException(`Failed to retrieve orders: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to retrieve orders: ${error.message}`,
+      );
     }
   }
   async findVendorOrders(
@@ -488,9 +492,9 @@ async findAllWithFilters(
       customerInfo: {
         name: `${order.firstname} ${order.lastName}`,
         phone: order.contactPhone,
-        phone2:order.contactPhone2,
+        phone2: order.contactPhone2,
         address: order.address,
-        city: order.toCity.name,
+        city: order.toCity,
       },
       deliveryInfo: order.deliveryman
         ? {
@@ -613,9 +617,6 @@ async findAllWithFilters(
       successRate: Math.round(successRate * 100) / 100,
     };
   }
-
-
-
 
   private validateStatusTransition(
     currentStatus: OrderStatus,
@@ -825,13 +826,13 @@ async findAllWithFilters(
     return estimatedDate.toISOString().split('T')[0];
   }
 
-  private getCurrentLocation(order: Order, trackingHistory: any[]): string {
+  private getCurrentLocation(order: Order, trackingHistory: any[]) {
     if (trackingHistory.length === 0) {
-      return order.fromCity.name;
+      return order.fromCity;
     }
 
     const latestEntry = trackingHistory[trackingHistory.length - 1];
-    return latestEntry.location || order.fromCity.name;
+    return latestEntry.location || order.fromCity;
   }
 
   private exportToCSV(orders: Order[]): string {
@@ -1295,7 +1296,4 @@ async findAllWithFilters(
     // For now, we'll just return a placeholder
     throw new BadRequestException('Order templates not implemented yet');
   }
-
-
-
 }

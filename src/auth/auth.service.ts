@@ -19,6 +19,7 @@ import { Request } from 'express';
 import { AdminNotificationService } from 'src/notification/admin-notification.service';
 import { UserRole } from 'src/common/types/roles.enum';
 import { RegisterDto } from './dto/register.dto';
+import { ContactFormDto } from './dto/email.dto';
 
 @Injectable()
 export class AuthService {
@@ -30,191 +31,184 @@ export class AuthService {
     private readonly adminNotificationService: AdminNotificationService,
   ) {}
 
-async registerClient(registerDto: ClientRegisterDto) {
-  const user = await this.usersService.createClient({
-    ...registerDto,
-    role: UserRole.DELIVERYMAN,
-  });
-  
-  const code = await this.otpService.createOtp(
-    user.email,
-    OtpType.VERIFY_EMAIL,
-  );
-  
-  this.mailService.sendVerficationCodeEmail(
-    user.email,
-    code.toString(),
-    OtpType.VERIFY_EMAIL,
-  );
-  
-  const token = await this.jwtService.signAsync({
-    id: user.id,
-    email: user.email,
-  });
-
-  // Get unified user info
-  const userInfo = await this.usersService.getUserInfo(user.id);
-
-  return { 
-    msg: 'Inscription réussie', 
-    token, 
-    userInfo 
-  };
-}
-
-async login(loginDto: LoginDto) {
-  const user = await this.usersService.findUserByEmail(loginDto.email, true);
-  
-  if (!user || !user.password) {
-    throw new BadRequestException({
-      fr: 'Email ou mot de passe incorrect',
-      ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+  async registerClient(registerDto: ClientRegisterDto) {
+    const user = await this.usersService.createClient({
+      ...registerDto,
+      role: UserRole.DELIVERYMAN,
     });
-  }
-  
-  const isPasswordValid = await Hash.compare(
-    loginDto.password,
-    user.password,
-  );
-  
-  if (!isPasswordValid) {
-    throw new BadRequestException({
-      fr: 'Email ou mot de passe incorrect',
-      ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+
+    const code = await this.otpService.createOtp(
+      user.email,
+      OtpType.VERIFY_EMAIL,
+    );
+
+    this.mailService.sendVerficationCodeEmail(
+      user.email,
+      code.toString(),
+      OtpType.VERIFY_EMAIL,
+    );
+
+    const token = await this.jwtService.signAsync({
+      id: user.id,
+      email: user.email,
     });
+
+    // Get unified user info
+    const userInfo = await this.usersService.getUserInfo(user.id);
+
+    return {
+      msg: 'Inscription réussie',
+      token,
+      userInfo,
+    };
   }
-  
-  if (user.blocked) {
-    throw new BadRequestException({
-      fr: 'Votre compte a été bloqué !',
-      ar: 'تم حظر حسابك',
+
+  async login(loginDto: LoginDto) {
+    const user = await this.usersService.findUserByEmail(loginDto.email, true);
+
+    if (!user || !user.password) {
+      throw new BadRequestException({
+        fr: 'Email ou mot de passe incorrect',
+        ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+      });
+    }
+
+    const isPasswordValid = await Hash.compare(
+      loginDto.password,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new BadRequestException({
+        fr: 'Email ou mot de passe incorrect',
+        ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+      });
+    }
+
+    if (user.blocked) {
+      throw new BadRequestException({
+        fr: 'Votre compte a été bloqué !',
+        ar: 'تم حظر حسابك',
+      });
+    }
+
+    const token = await this.jwtService.signAsync({
+      id: user.id,
+      email: user.email,
     });
+
+    if (loginDto.deviceToken) {
+      await this.usersService.update(user.id, {
+        deviceToken: loginDto.deviceToken,
+      });
+    }
+
+    // Get unified user info after potential device token update
+    const userInfo = await this.usersService.getUserInfo(user.id);
+
+    return {
+      msg: 'Connexion réussie',
+      token,
+      userInfo,
+    };
   }
-  
-  const token = await this.jwtService.signAsync({
-    id: user.id,
-    email: user.email,
-  });
-  
-  if (loginDto.deviceToken) {
-    await this.usersService.update(user.id, {
-      deviceToken: loginDto.deviceToken,
+
+  async registerVendor(registerDto: RegisterDto) {
+    const user = await this.usersService.createClient({
+      ...registerDto,
+      role: UserRole.VENDOR,
     });
-  }
-  
-  // Get unified user info after potential device token update
-  const userInfo = await this.usersService.getUserInfo(user.id);
-  
 
-  
-  
-  return {
-    msg: 'Connexion réussie',
-    token,
-    userInfo,
-  };
-}
+    const code = await this.otpService.createOtp(
+      user.email,
+      OtpType.VERIFY_EMAIL,
+    );
 
-async registerVendor(registerDto: RegisterDto) {
-  const user = await this.usersService.createClient({
-    ...registerDto,
-    role: UserRole.VENDOR,
-  });
-  
-  const code = await this.otpService.createOtp(
-    user.email,
-    OtpType.VERIFY_EMAIL,
-  );
-  
-  this.mailService.sendVerficationCodeEmail(
-    user.email,
-    code.toString(),
-    OtpType.VERIFY_EMAIL,
-  );
-  
-  const token = await this.jwtService.signAsync({
-    id: user.id,
-    email: user.email,
-  });
+    this.mailService.sendVerficationCodeEmail(
+      user.email,
+      code.toString(),
+      OtpType.VERIFY_EMAIL,
+    );
 
-  // Get unified user info
-  const userInfo = await this.usersService.getUserInfo(user.id);
-
-  return { 
-    msg: 'Inscription réussie', 
-    token, 
-    userInfo 
-  };
-}
-
-    async changePhone(dto: changePhoneDto, userId: number) {
-  const { phone, firebaseUserId } = dto;
-
-  // Check if the new phone number already exists
-  const existingUser = await this.usersService.findUserByPhone(phone, true);
-  if (existingUser && existingUser.id !== userId) {
-    throw new BadRequestException({
-      fr: 'Ce numéro de téléphone est déjà utilisé',
-      ar: 'رقم الهاتف هذا مستخدم بالفعل',
+    const token = await this.jwtService.signAsync({
+      id: user.id,
+      email: user.email,
     });
+
+    // Get unified user info
+    const userInfo = await this.usersService.getUserInfo(user.id);
+
+    return {
+      msg: 'Inscription réussie',
+      token,
+      userInfo,
+    };
   }
 
-  // Find the current user
-  const user = await this.usersService.findOne(userId);
-  if (!user) {
-    throw new BadRequestException('Utilisateur introuvable');
+  async changePhone(dto: changePhoneDto, userId: number) {
+    const { phone, firebaseUserId } = dto;
+
+    // Check if the new phone number already exists
+    const existingUser = await this.usersService.findUserByPhone(phone, true);
+    if (existingUser && existingUser.id !== userId) {
+      throw new BadRequestException({
+        fr: 'Ce numéro de téléphone est déjà utilisé',
+        ar: 'رقم الهاتف هذا مستخدم بالفعل',
+      });
+    }
+
+    // Find the current user
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new BadRequestException('Utilisateur introuvable');
+    }
+
+    // Update user's phone number and Firebase UID
+    const updateData = {
+      phoneNumber: phone,
+      firebaseUserId: firebaseUserId,
+      isPhoneVerified: true, // Assuming phone verification happens via Firebase
+    };
+
+    await this.usersService.update(userId, updateData);
+
+    return {
+      msg: {
+        fr: 'Numéro de téléphone modifié avec succès',
+        ar: 'تم تغيير رقم الهاتف بنجاح',
+      },
+      phone: phone,
+    };
   }
-
-  // Update user's phone number and Firebase UID
-  const updateData = {
-    phoneNumber: phone,
-    firebaseUserId: firebaseUserId,
-    isPhoneVerified: true, // Assuming phone verification happens via Firebase
-  };
-
-  await this.usersService.update(userId, updateData);
-
-  return {
-    msg: {
-      fr: 'Numéro de téléphone modifié avec succès',
-      ar: 'تم تغيير رقم الهاتف بنجاح',
-    },
-    phone: phone,
-  };
-}
-
-
 
   async checkPhoneExists(phone: string) {
-  try {
-    const user = await this.usersService.findUserByPhone(phone, true);
-    
-    if (user) {
-      return {
-        exists: true,
-        message: {
-          fr: 'Numéro de téléphone trouvé',
-          ar: 'تم العثور على رقم الهاتف',
-        },
-      
-      };
-    } else {
-      return {
-        exists: false,
-        message: {
-          fr: 'Numéro de téléphone non trouvé',
-          ar: 'لم يتم العثور على رقم الهاتف',
-        },
-       
-      };
+    try {
+      const user = await this.usersService.findUserByPhone(phone, true);
+
+      if (user) {
+        return {
+          exists: true,
+          message: {
+            fr: 'Numéro de téléphone trouvé',
+            ar: 'تم العثور على رقم الهاتف',
+          },
+        };
+      } else {
+        return {
+          exists: false,
+          message: {
+            fr: 'Numéro de téléphone non trouvé',
+            ar: 'لم يتم العثور على رقم الهاتف',
+          },
+        };
+      }
+    } catch (error) {
+      throw new BadRequestException({
+        fr: 'Erreur lors de la vérification du numéro',
+        ar: 'خطأ في التحقق من الرقم',
+      });
     }
-  } catch (error) {
-    throw new BadRequestException({
-      fr: 'Erreur lors de la vérification du numéro',
-      ar: 'خطأ في التحقق من الرقم',
-    });
   }
-}
   /*
 
 
@@ -398,5 +392,24 @@ async registerVendor(registerDto: RegisterDto) {
       throw new BadRequestException('Token invalide');
     }
     return { msg: 'Token valide', success: true };
+  }
+
+  // Add this method to your UsersService class
+  async submitContactForm(contactFormDto: ContactFormDto) {
+    try {
+      await this.mailService.sendContactFormEmail(contactFormDto);
+
+      return {
+        msg: 'Votre message a été envoyé avec succès. Nous vous contacterons bientôt.',
+        msgAr: 'تم إرسال رسالتك بنجاح. سنتواصل معك قريباً.',
+        success: true,
+      };
+    } catch (error) {
+      console.error('Error sending contact form email:', error);
+      throw new BadRequestException({
+        fr: "Erreur lors de l'envoi du message. Veuillez réessayer plus tard.",
+        ar: 'حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى لاحقاً.',
+      });
+    }
   }
 }

@@ -1,13 +1,31 @@
-import { Body, Controller, Get, HttpCode, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { LoginDto } from './dto/login.dto';
-import { EmailDto } from './dto/email.dto';
+import { ContactFormDto, EmailDto } from './dto/email.dto';
 import { OtpType } from './types/otp-type.enum';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { OtpService } from './otp.service';
-import { changePhoneDto, ResetPasswordDto, SendPhoneOtpDto } from './dto/reset-password.dto';
+import {
+  changePhoneDto,
+  ResetPasswordDto,
+  SendPhoneOtpDto,
+} from './dto/reset-password.dto';
 import { ClientRegisterDto } from './dto/client-register.dto';
 import { Request } from 'express';
 import { RegisterDto } from './dto/register.dto';
@@ -32,33 +50,32 @@ export class AuthController {
   }
 
   @Post('/check-phone')
-@HttpCode(200)
-@ApiOperation({ summary: 'Check if phone number exists in system' })
-@ApiResponse({ 
-  status: 200, 
-  description: 'Phone check result',
-  schema: {
-    properties: {
-      exists: { type: 'boolean', example: true },
-      message: { type: 'string', example: 'Phone number found' },
-      userInfo: {
-        type: 'object',
-        properties: {
-          id: { type: 'number', example: 123 },
-          role: { type: 'string', example: 'artisan' },
-          isPhoneVerified: { type: 'boolean', example: true },
-          hasPassword: { type: 'boolean', example: false },
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Check if phone number exists in system' })
+  @ApiResponse({
+    status: 200,
+    description: 'Phone check result',
+    schema: {
+      properties: {
+        exists: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Phone number found' },
+        userInfo: {
+          type: 'object',
+          properties: {
+            id: { type: 'number', example: 123 },
+            role: { type: 'string', example: 'artisan' },
+            isPhoneVerified: { type: 'boolean', example: true },
+            hasPassword: { type: 'boolean', example: false },
+          },
+          nullable: true,
         },
-        nullable: true,
       },
     },
-  },
-})
-@ApiResponse({ status: 400, description: 'Invalid phone number format' })
-async checkPhone(@Body() checkPhoneDto: SendPhoneOtpDto) {
-  return await this.authService.checkPhoneExists(checkPhoneDto.phone);
-}
-
+  })
+  @ApiResponse({ status: 400, description: 'Invalid phone number format' })
+  async checkPhone(@Body() checkPhoneDto: SendPhoneOtpDto) {
+    return await this.authService.checkPhoneExists(checkPhoneDto.phone);
+  }
 
   @Post('/register-vendor')
   async registervendor(@Body() registerDto: RegisterDto) {
@@ -76,17 +93,17 @@ async checkPhone(@Body() checkPhoneDto: SendPhoneOtpDto) {
   async login(@Body() loginDto: LoginDto) {
     return await this.authService.login(loginDto);
   }
-  
-@Patch('/change-phone')
 
+  @Patch('/change-phone')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.DELIVERYMAN)
-async ChnagePhone(@Body() dto: changePhoneDto ,
-@GetCurrentUser() payload :UserPayload
-) {
-    return await this.authService.changePhone(dto ,payload.userId);
-}
+  async ChnagePhone(
+    @Body() dto: changePhoneDto,
+    @GetCurrentUser() payload: UserPayload,
+  ) {
+    return await this.authService.changePhone(dto, payload.userId);
+  }
 
   /*
   @Post('/register-artisan')
@@ -166,5 +183,10 @@ async ChnagePhone(@Body() dto: changePhoneDto ,
   @HttpCode(200)
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return await this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @Post('contact')
+  async submitContactForm(@Body() contactFormDto: ContactFormDto) {
+    return this.authService.submitContactForm(contactFormDto);
   }
 }

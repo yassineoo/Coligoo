@@ -12,14 +12,27 @@ import { OrderItem } from './entities/order-items';
 import { Product } from 'src/products/entities/product.entity';
 import { SharedOrdersService } from './shared.service';
 import { OrdersOperationsService } from './orders.operations.service';
+import { City } from 'src/wilaya/entities/city.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Order, OrderTracking,OrderItem,Product]),
+    TypeOrmModule.forFeature([
+      User,
+      Order,
+      OrderTracking,
+      OrderItem,
+      Product,
+      City,
+    ]),
     EnvConfigModule,
     UsersModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, OrderTrackingService,SharedOrdersService,OrdersOperationsService],
+  providers: [
+    OrdersService,
+    OrderTrackingService,
+    SharedOrdersService,
+    OrdersOperationsService,
+  ],
 })
 export class OrdersModule {}

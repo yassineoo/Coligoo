@@ -39,15 +39,16 @@ import { OrdersOperationsService } from './orders.operations.service';
 
 @ApiTags('Orders')
 @Controller('orders')
-@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService ,
+  constructor(
+    private readonly ordersService: OrdersService,
 
-    private readonly ordersOperationsService: OrdersOperationsService ,
+    private readonly ordersOperationsService: OrdersOperationsService,
   ) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.VENDOR, UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a new order' })
   @ApiResponse({
@@ -65,6 +66,7 @@ export class OrdersController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.VENDOR, UserRole.DELIVERYMAN)
   @ApiOperation({ summary: 'Get all orders with filters and pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
@@ -131,6 +133,7 @@ export class OrdersController {
   }
 
   @Get('my-orders')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.VENDOR)
   @ApiOperation({ summary: 'Get orders for the authenticated vendor' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
@@ -163,6 +166,7 @@ export class OrdersController {
   }
 
   @Get('my-deliveries')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.DELIVERYMAN)
   @ApiOperation({
     summary: 'Get orders assigned to the authenticated deliveryman',
@@ -182,6 +186,7 @@ export class OrdersController {
   }
 
   @Get('analytics')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.VENDOR)
   @ApiOperation({ summary: 'Get order analytics and statistics' })
   @ApiQuery({
@@ -222,6 +227,7 @@ export class OrdersController {
   }
 
   @Get('export')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.VENDOR)
   @ApiOperation({ summary: 'Export orders to CSV/Excel' })
   @ApiQuery({
@@ -255,6 +261,7 @@ export class OrdersController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.VENDOR, UserRole.DELIVERYMAN)
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
@@ -269,6 +276,7 @@ export class OrdersController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.VENDOR, UserRole.DELIVERYMAN)
   @ApiOperation({ summary: 'Update an order' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
@@ -292,6 +300,7 @@ export class OrdersController {
   }
 
   @Patch(':id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.DELIVERYMAN)
   @ApiOperation({ summary: 'Update order status' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
@@ -309,6 +318,7 @@ export class OrdersController {
   }
 
   @Patch(':id/assign-deliveryman')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Assign or reassign deliveryman to order' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
@@ -325,6 +335,7 @@ export class OrdersController {
   }
 
   @Post('bulk-update')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Bulk update multiple orders' })
   @ApiResponse({
@@ -344,6 +355,7 @@ export class OrdersController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete an order (Admin only)' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
@@ -355,6 +367,7 @@ export class OrdersController {
   }
 
   @Patch(':id/cancel')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.VENDOR)
   @ApiOperation({ summary: 'Cancel an order' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
@@ -404,6 +417,7 @@ export class OrdersController {
   }
 
   @Post(':id/delivery-proof')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.DELIVERYMAN)
   @ApiOperation({ summary: 'Upload delivery proof (photo, signature)' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })

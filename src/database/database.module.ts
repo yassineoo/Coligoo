@@ -6,6 +6,7 @@ import { DatabaseConfig } from 'src/config/database.config';
 import { AdminNotification } from 'src/notification/entities/admin-notification.entity';
 import { Notification } from 'src/notification/entities/notification.entity';
 import { OrderItem } from 'src/orders/entities/order-items';
+import { OrderTracking } from 'src/orders/entities/order-tracking.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrderTrackingService } from 'src/orders/tracking.service';
 import { Product } from 'src/products/entities/product.entity';
@@ -36,9 +37,9 @@ import { Or } from 'typeorm';
           Notification,
           AdminNotification,
           Order,
-          OrderTrackingService,
+          OrderTracking,
           Product,
-          OrderItem
+          OrderItem,
         ],
       }),
       inject: [DatabaseConfig],

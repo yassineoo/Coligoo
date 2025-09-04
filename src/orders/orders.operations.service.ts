@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder, In, Between } from 'typeorm';
+import { Repository, SelectQueryBuilder, In, Between, IsNull } from 'typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
 import { CreateOrderDto, OrderItemsDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -16,6 +16,7 @@ import { BulkUpdateOrderDto, OrderFilterDto, PaginatedResult } from './dto/dto';
 import { UserRole } from 'src/common/types/roles.enum';
 import { OrderItem } from './entities/order-items';
 import { SharedOrdersService } from './shared.service';
+import { City } from 'src/wilaya/entities/city.entity';
 
 @Injectable()
 export class OrdersOperationsService {
@@ -24,17 +25,18 @@ export class OrdersOperationsService {
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(City)
+    private readonly cityRepository: Repository<City>,
     @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
     @InjectRepository(Product) // Add missing Product repository
     private readonly productRepository: Repository<Product>,
     private readonly sharedOrder: SharedOrdersService,
 
-    private readonly trackingService: OrderTrackingService, // Make optional
-    // private readonly notificationService: NotificationService,
-    // private readonly eventEmitter: EventEmitter2,
+    private readonly trackingService: OrderTrackingService, // Make optional // private readonly notificationService: NotificationService, // private readonly eventEmitter: EventEmitter2,
   ) {}
 
+  // Updated create method - no longer requires cities
   async create(createOrderDto: CreateOrderDto, user: User): Promise<Order> {
     try {
       // Generate unique order ID
@@ -47,89 +49,146 @@ export class OrdersOperationsService {
 
       // Use calculated price if no price provided or validate against provided price
       const finalPrice = createOrderDto.price || calculatedPrice;
-      
+
       // Optional: Validate that provided price matches calculated price
-      if (createOrderDto.price && Math.abs(createOrderDto.price - calculatedPrice) > 0.01) {
-        throw new BadRequestException('Provided price does not match calculated price from order items');
+      if (
+        createOrderDto.price &&
+        Math.abs(createOrderDto.price - calculatedPrice) > 0.01
+      ) {
+        throw new BadRequestException(
+          'Provided price does not match calculated price from order items',
+        );
+      }
+
+      // Handle optional cities - only fetch if IDs are provided
+      let fromCity = null;
+      let toCity = null;
+
+      if (createOrderDto.fromCityId) {
+        fromCity = await this.cityRepository.findOne({
+          where: { id: createOrderDto.fromCityId },
+        });
+
+        if (!fromCity) {
+          throw new BadRequestException(
+            `From city with ID ${createOrderDto.fromCityId} not found`,
+          );
+        }
+      }
+
+      if (createOrderDto.toCityId) {
+        toCity = await this.cityRepository.findOne({
+          where: { id: createOrderDto.toCityId },
+        });
+
+        if (!toCity) {
+          throw new BadRequestException(
+            `To city with ID ${createOrderDto.toCityId} not found`,
+          );
+        }
       }
 
       // Create the main order
       const order = this.orderRepository.create({
-        ...createOrderDto,
         orderId,
         sender: user,
+        firstname: createOrderDto.firstname,
+        lastName: createOrderDto.lastName,
+        contactPhone: createOrderDto.contactPhone,
+        contactPhone2: createOrderDto.contactPhone2,
+        address: createOrderDto.address,
+        note: createOrderDto.note,
+        fromCity, // Can be null initially
+        toCity, // Can be null initially
         price: finalPrice,
-        // Generate productList from orderItems if not provided (backward compatibility)
-        productList: createOrderDto.productList || this.generateProductListFromItems(createOrderDto.orderItems),
+        weight: createOrderDto.weight,
+        height: createOrderDto.height,
+        width: createOrderDto.width,
+        length: createOrderDto.length,
+        isStopDesk: createOrderDto.isStopDesk,
+        freeShipping: createOrderDto.freeShipping,
+        hasExchange: createOrderDto.hasExchange,
+        paymentType: createOrderDto.paymentType,
+        shippingFee: null, // Will be calculated when cities are assigned
       });
 
-      // Calculate shipping fee based on cities and weight
-      order.shippingFee = await this.sharedOrder.calculateShippingFee(
-        createOrderDto.fromCityId,
-        createOrderDto.toCityId,
-        createOrderDto.weight || this.calculateTotalWeight(createOrderDto.orderItems),
-      );
+      // Only calculate shipping if both cities are provided
+      if (fromCity && toCity) {
+        order.shippingFee = await this.sharedOrder.calculateShippingFee(
+          createOrderDto.fromCityId,
+          createOrderDto.toCityId,
+          createOrderDto.weight ||
+            this.calculateTotalWeight(createOrderDto.orderItems),
+        );
+      }
 
       // Save the order first
       const savedOrder = await this.orderRepository.save(order);
 
       // Create and save order items
-      const orderItems = await this.createOrderItems(orderItemsData, savedOrder);
-      
+      const orderItems = await this.createOrderItems(
+        orderItemsData,
+        savedOrder,
+      );
+
       // Update the saved order with the order items relationship
       savedOrder.orderItems = orderItems;
 
-      // Create initial tracking entry (only if tracking service is properly configured)
+      // Create initial tracking entry
       try {
         await this.trackingService.addTrackingEntry(savedOrder.id, {
           status: OrderStatus.PENDING,
-          location: savedOrder.fromCity?.name || 'Unknown Location',
-          note: 'Order created and awaiting confirmation',
+          location: savedOrder.fromCity?.name || 'Warehouse',
+          note:
+            savedOrder.fromCity && savedOrder.toCity
+              ? 'Order created and awaiting confirmation'
+              : 'Order created - awaiting city assignment by hub staff',
         });
       } catch (trackingError) {
-        // Log the tracking error but don't fail the order creation
         console.warn('Failed to create tracking entry:', trackingError.message);
-        // You might want to use a proper logger here instead of console.warn
       }
-
-      // Emit event for notifications
-      // this.eventEmitter.emit('order.created', savedOrder);
 
       return savedOrder;
     } catch (error) {
-      // Handle specific database constraint errors
       if (error.code === 'ER_NO_REFERENCED_ROW_2') {
-        throw new BadRequestException('One or more products in the order do not exist. Please check your product IDs.');
+        throw new BadRequestException(
+          'One or more products in the order do not exist. Please check your product IDs.',
+        );
       }
-      
-      // Re-throw known exceptions
-      if (error instanceof BadRequestException || error instanceof NotFoundException) {
+
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
         throw error;
       }
-      
-      // Handle other errors
+
       throw new BadRequestException(`Failed to create order: ${error.message}`);
     }
   }
 
   async duplicateOrder(orderId: number, user: User): Promise<Order> {
     // Find original order with order items included
-    const originalOrder = await this.findOneWithPermissionAndItems(orderId, user);
+    const originalOrder = await this.findOneWithPermissionAndItems(
+      orderId,
+      user,
+    );
 
     // Map original order items to OrderItemsDto format
-    const orderItems: OrderItemsDto[] = originalOrder.orderItems?.map(item => ({
-      productId: item.productId,
-      productName: item.product.productName, // Use productName directly from OrderItem
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      totalPrice: item.totalPrice,
-    })) || [];
+    const orderItems: OrderItemsDto[] =
+      originalOrder.orderItems?.map((item) => ({
+        productId: item.productId,
+        productName: item.product.productName, // Use productName directly from OrderItem
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        totalPrice: item.totalPrice,
+      })) || [];
 
     // If no order items found, try to create a generic item for legacy orders
     if (orderItems.length === 0 && originalOrder.productList) {
       // Get the first available product ID or create a generic product
       const defaultProductId = await this.getOrCreateDefaultProduct();
-      
+
       orderItems.push({
         productId: defaultProductId,
         productName: originalOrder.productList,
@@ -168,7 +227,10 @@ export class OrdersOperationsService {
   /**
    * Find order with permission check and include order items
    */
-  private async findOneWithPermissionAndItems(orderId: number, user: User): Promise<Order> {
+  private async findOneWithPermissionAndItems(
+    orderId: number,
+    user: User,
+  ): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId, sender: { id: user.id } },
       relations: [
@@ -180,7 +242,9 @@ export class OrdersOperationsService {
     });
 
     if (!order) {
-      throw new NotFoundException('Order not found or you do not have permission to access it');
+      throw new NotFoundException(
+        'Order not found or you do not have permission to access it',
+      );
     }
 
     return order;
@@ -202,11 +266,16 @@ export class OrdersOperationsService {
       await this.validateProductExists(item.productId);
 
       // Calculate total price for each item if not provided
-      const itemTotal = item.totalPrice || (item.unitPrice * item.quantity);
-      
+      const itemTotal = item.totalPrice || item.unitPrice * item.quantity;
+
       // Validate that calculated total matches provided total
-      if (item.totalPrice && Math.abs(item.totalPrice - (item.unitPrice * item.quantity)) > 0.01) {
-        throw new BadRequestException(`Total price for item ${item.productName} does not match unit price * quantity`);
+      if (
+        item.totalPrice &&
+        Math.abs(item.totalPrice - item.unitPrice * item.quantity) > 0.01
+      ) {
+        throw new BadRequestException(
+          `Total price for item ${item.productName} does not match unit price * quantity`,
+        );
       }
 
       calculatedPrice += itemTotal;
@@ -223,7 +292,10 @@ export class OrdersOperationsService {
   /**
    * Create order items for the saved order
    */
-  private async createOrderItems(orderItemsData: any[], order: Order): Promise<OrderItem[]> {
+  private async createOrderItems(
+    orderItemsData: any[],
+    order: Order,
+  ): Promise<OrderItem[]> {
     const orderItems = [];
 
     for (const itemData of orderItemsData) {
@@ -244,7 +316,7 @@ export class OrdersOperationsService {
    */
   private generateProductListFromItems(orderItems: OrderItemsDto[]): string {
     return orderItems
-      .map(item => `${item.productName} (x${item.quantity})`)
+      .map((item) => `${item.productName} (x${item.quantity})`)
       .join(', ');
   }
 
@@ -255,21 +327,24 @@ export class OrdersOperationsService {
     // This would typically fetch product weights from database
     // For now, return a default weight per item
     const defaultWeightPerItem = 0.5; // kg
-    return orderItems.reduce((total, item) => total + (item.quantity * defaultWeightPerItem), 0);
+    return orderItems.reduce(
+      (total, item) => total + item.quantity * defaultWeightPerItem,
+      0,
+    );
   }
 
   /**
    * Validate that a product exists
    */
   private async validateProductExists(productId: number): Promise<boolean> {
-    const product = await this.productRepository.findOne({ 
-      where: { id: productId } 
+    const product = await this.productRepository.findOne({
+      where: { id: productId },
     });
-    
+
     if (!product) {
       throw new NotFoundException(`Product with ID ${productId} not found`);
     }
-    
+
     return true;
   }
 
@@ -279,7 +354,7 @@ export class OrdersOperationsService {
   private async getOrCreateDefaultProduct(): Promise<number> {
     // Try to get the first available product
     const existingProduct = await this.productRepository.findOne({
-      order: { id: 'ASC' }
+      order: { id: 'ASC' },
     });
 
     if (existingProduct) {
