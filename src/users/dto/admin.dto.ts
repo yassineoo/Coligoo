@@ -1,20 +1,30 @@
-import { IsString, IsNotEmpty, IsEnum, IsEmail, IsOptional, IsArray, IsBoolean, IsDateString, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsEmail,
+  IsOptional,
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsNumber,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { UserRole } from 'src/common/types/roles.enum';
 
-export class CreateHubEmployeeDto {
+export class CreateTeamMemberDto {
   @ApiProperty({
-    description: 'Employee email',
-    example: 'employee@hub.com'
+    description: 'User email',
+    example: 'user@example.com',
   })
   @IsEmail()
   @IsNotEmpty()
   email: string;
 
   @ApiProperty({
-    description: 'Employee password',
-    example: 'SecurePassword123'
+    description: 'User password',
+    example: 'SecurePassword123',
   })
   @IsString()
   @IsNotEmpty()
@@ -22,94 +32,94 @@ export class CreateHubEmployeeDto {
 
   @ApiPropertyOptional({
     description: 'First name',
-    example: 'Hamza'
-  })
-  @IsOptional()
-  @IsString()
-  nom?: string;
-
-  @ApiPropertyOptional({
-    description: 'Last name',
-    example: 'Bouchanane'
+    example: 'Hamza',
   })
   @IsOptional()
   @IsString()
   prenom?: string;
 
   @ApiPropertyOptional({
-    description: 'Full name',
-    example: 'Hamza Bouchanane'
+    description: 'Last name',
+    example: 'Bouchanane',
   })
   @IsOptional()
   @IsString()
-  fullName?: string;
+  nom?: string;
 
   @ApiPropertyOptional({
-    description: 'Employee permissions',
-    type: [String],
-    example: ['orders.read', 'orders.write', 'customers.read']
+    description: 'Full address',
+    example: '123 Rue de la Liberté, Alger, Algérie',
   })
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  permissions?: string[];
-
-  @ApiPropertyOptional({
-    description: 'Date of birth',
-    example: '1990-01-15'
-  })
-  @IsOptional()
-  @IsDateString()
-  dob?: string;
+  @IsString()
+  address?: string;
 
   @ApiPropertyOptional({
     description: 'Phone number',
-    example: '0549461543'
+    example: '+213549461543',
   })
   @IsOptional()
   @IsString()
   phoneNumber?: string;
 
-  @ApiPropertyOptional({
-    description: 'Gender',
-    enum: ['homme', 'femme'],
-    example: 'homme'
+  @ApiProperty({
+    enum: UserRole,
+    description: 'User role',
+    example: UserRole.ADMIN,
   })
-  @IsOptional()
-  @IsEnum(['homme', 'femme'])
-  sex?: string;
+  @IsEnum(UserRole)
+  role: UserRole;
 
   @ApiPropertyOptional({
     description: 'Profile image URL',
-    example: 'https://example.com/image.jpg'
+    example: 'https://example.com/photo.jpg',
   })
   @IsOptional()
   @IsString()
   imgUrl?: string;
 
   @ApiPropertyOptional({
-    description: 'Device token for notifications',
-    example: 'device_token_here'
+    description: 'Team member permissions',
+    type: [String],
+    example: [
+      'view.packages',
+      'edit.packageStatus',
+      'access.financialPage',
+      'manage.teamMembers',
+      'view.printReports',
+      'access.settings',
+    ],
   })
   @IsOptional()
-  @IsString()
-  deviceToken?: string;
+  @IsArray()
+  @IsString({ each: true })
+  permissions?: string[];
+
+  fileName: string;
 }
 
-export class UpdateHubEmployeeDto extends PartialType(CreateHubEmployeeDto) {
+export class UpdateTeamMemberDto extends PartialType(CreateTeamMemberDto) {
   @ApiPropertyOptional({
-    description: 'Employee password (optional for updates)',
-    example: 'NewSecurePassword123'
+    description: 'User password (optional for updates)',
+    example: 'NewSecurePassword123',
   })
   @IsOptional()
   @IsString()
   password?: string;
+
+  @ApiPropertyOptional({
+    description: 'Is user blocked',
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  blocked?: boolean;
 }
 
 export class HubEmployeeFilterDto {
   @ApiPropertyOptional({
     description: 'Search by name (first name, last name, full name, or email)',
-    example: 'Hamza'
+    example: 'Hamza',
   })
   @IsOptional()
   @IsString()
@@ -117,7 +127,7 @@ export class HubEmployeeFilterDto {
 
   @ApiPropertyOptional({
     description: 'Filter by blocked status',
-    example: 'false'
+    example: 'false',
   })
   @IsOptional()
   @IsString()
@@ -125,7 +135,7 @@ export class HubEmployeeFilterDto {
 
   @ApiPropertyOptional({
     description: 'Filter by email verified status',
-    example: 'true'
+    example: 'true',
   })
   @IsOptional()
   @IsString()
@@ -134,7 +144,7 @@ export class HubEmployeeFilterDto {
   @ApiPropertyOptional({
     description: 'Page number for pagination',
     example: 1,
-    minimum: 1
+    minimum: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -143,7 +153,7 @@ export class HubEmployeeFilterDto {
   @ApiPropertyOptional({
     description: 'Items per page',
     example: 10,
-    minimum: 1
+    minimum: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -152,7 +162,7 @@ export class HubEmployeeFilterDto {
   @ApiPropertyOptional({
     description: 'Order by field',
     example: 'createdAt',
-    enum: ['createdAt', 'nom', 'prenom', 'email']
+    enum: ['createdAt', 'nom', 'prenom', 'email'],
   })
   @IsOptional()
   @IsString()
@@ -161,7 +171,7 @@ export class HubEmployeeFilterDto {
   @ApiPropertyOptional({
     description: 'Order direction',
     example: 'DESC',
-    enum: ['ASC', 'DESC']
+    enum: ['ASC', 'DESC'],
   })
   @IsOptional()
   @IsEnum(['ASC', 'DESC'])
@@ -172,7 +182,7 @@ export class HubEmployeeFilterDto {
 export class CreateAdminUserDto {
   @ApiProperty({
     description: 'User email',
-    example: 'user@example.com'
+    example: 'user@example.com',
   })
   @IsEmail()
   @IsNotEmpty()
@@ -180,7 +190,7 @@ export class CreateAdminUserDto {
 
   @ApiProperty({
     description: 'User password',
-    example: 'SecurePassword123'
+    example: 'SecurePassword123',
   })
   @IsString()
   @IsNotEmpty()
@@ -188,7 +198,7 @@ export class CreateAdminUserDto {
 
   @ApiPropertyOptional({
     description: 'First name',
-    example: 'Hamza'
+    example: 'Hamza',
   })
   @IsOptional()
   @IsString()
@@ -196,7 +206,7 @@ export class CreateAdminUserDto {
 
   @ApiPropertyOptional({
     description: 'Last name',
-    example: 'Bouchanane'
+    example: 'Bouchanane',
   })
   @IsOptional()
   @IsString()
@@ -204,7 +214,7 @@ export class CreateAdminUserDto {
 
   @ApiPropertyOptional({
     description: 'Full name',
-    example: 'Hamza Bouchanane'
+    example: 'Hamza Bouchanane',
   })
   @IsOptional()
   @IsString()
@@ -213,14 +223,14 @@ export class CreateAdminUserDto {
   @ApiProperty({
     enum: UserRole,
     description: 'User role',
-    example: UserRole.HUB_ADMIN
+    example: UserRole.HUB_ADMIN,
   })
   @IsEnum(UserRole)
   role: UserRole;
 
   @ApiPropertyOptional({
     description: 'Hub ID for HUB_EMPLOYEE (required if role is HUB_EMPLOYEE)',
-    example: 1
+    example: 1,
   })
   @IsOptional()
   @IsNumber()
@@ -229,27 +239,24 @@ export class CreateAdminUserDto {
   @ApiPropertyOptional({
     description: 'User permissions',
     type: [String],
-    example: ['users.read', 'users.write', 'products.read']
+    example: ['users.read', 'users.write', 'products.read'],
   })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   permissions?: string[];
 
-
-
   @ApiPropertyOptional({
     description: 'Phone number',
-    example: '0549461543'
+    example: '0549461543',
   })
   @IsOptional()
   @IsString()
   phoneNumber?: string;
 
-
   @ApiPropertyOptional({
     description: 'Profile image URL',
-    example: 'https://example.com/image.jpg'
+    example: 'https://example.com/image.jpg',
   })
   @IsOptional()
   @IsString()
@@ -257,7 +264,7 @@ export class CreateAdminUserDto {
 
   @ApiPropertyOptional({
     description: 'Is user blocked',
-    example: false
+    example: false,
   })
   @IsOptional()
   @IsBoolean()
@@ -265,7 +272,7 @@ export class CreateAdminUserDto {
 
   @ApiPropertyOptional({
     description: 'Device token for notifications',
-    example: 'device_token_here'
+    example: 'device_token_here',
   })
   @IsOptional()
   @IsString()
@@ -275,7 +282,7 @@ export class CreateAdminUserDto {
 export class UpdateAdminUserDto extends PartialType(CreateAdminUserDto) {
   @ApiPropertyOptional({
     description: 'User password (optional for updates)',
-    example: 'NewSecurePassword123'
+    example: 'NewSecurePassword123',
   })
   @IsOptional()
   @IsString()
@@ -285,7 +292,7 @@ export class UpdateAdminUserDto extends PartialType(CreateAdminUserDto) {
 export class AdminUserFilterDto {
   @ApiPropertyOptional({
     description: 'Search by name (first name, last name, full name, or email)',
-    example: 'Hamza'
+    example: 'Hamza',
   })
   @IsOptional()
   @IsString()
@@ -294,7 +301,7 @@ export class AdminUserFilterDto {
   @ApiPropertyOptional({
     enum: UserRole,
     description: 'Filter by user role',
-    example: UserRole.VENDOR
+    example: UserRole.VENDOR,
   })
   @IsOptional()
   @IsEnum(UserRole)
@@ -302,7 +309,7 @@ export class AdminUserFilterDto {
 
   @ApiPropertyOptional({
     description: 'Filter by blocked status',
-    example: 'false'
+    example: 'false',
   })
   @IsOptional()
   @IsString()
@@ -310,7 +317,7 @@ export class AdminUserFilterDto {
 
   @ApiPropertyOptional({
     description: 'Filter by email verified status',
-    example: 'true'
+    example: 'true',
   })
   @IsOptional()
   @IsString()
@@ -319,7 +326,7 @@ export class AdminUserFilterDto {
   @ApiPropertyOptional({
     description: 'Page number for pagination',
     example: 1,
-    minimum: 1
+    minimum: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -328,7 +335,7 @@ export class AdminUserFilterDto {
   @ApiPropertyOptional({
     description: 'Items per page',
     example: 10,
-    minimum: 1
+    minimum: 1,
   })
   @IsOptional()
   @Type(() => Number)
@@ -337,7 +344,7 @@ export class AdminUserFilterDto {
   @ApiPropertyOptional({
     description: 'Order by field',
     example: 'createdAt',
-    enum: ['createdAt', 'nom', 'prenom', 'email', 'role']
+    enum: ['createdAt', 'nom', 'prenom', 'email', 'role'],
   })
   @IsOptional()
   @IsString()
@@ -346,7 +353,7 @@ export class AdminUserFilterDto {
   @ApiPropertyOptional({
     description: 'Order direction',
     example: 'DESC',
-    enum: ['ASC', 'DESC']
+    enum: ['ASC', 'DESC'],
   })
   @IsOptional()
   @IsEnum(['ASC', 'DESC'])

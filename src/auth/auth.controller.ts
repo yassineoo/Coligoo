@@ -5,6 +5,7 @@ import {
   HttpCode,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -24,7 +25,10 @@ import { OtpService } from './otp.service';
 import {
   changePhoneDto,
   ResetPasswordDto,
+  ResetPasswordWithTokenDto,
   SendPhoneOtpDto,
+  SendResetLinkDto,
+  VerifyResetTokenDto,
 } from './dto/reset-password.dto';
 import { ClientRegisterDto } from './dto/client-register.dto';
 import { Request } from 'express';
@@ -188,5 +192,114 @@ export class AuthController {
   @Post('contact')
   async submitContactForm(@Body() contactFormDto: ContactFormDto) {
     return this.authService.submitContactForm(contactFormDto);
+  }
+
+  @Post('/send-reset-link')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Send password reset link to email',
+    description:
+      "Sends a password reset link to the user's email address with a verification token",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Reset link sent successfully',
+    schema: {
+      properties: {
+        msg: {
+          type: 'object',
+          properties: {
+            fr: {
+              type: 'string',
+              example:
+                'Un lien de réinitialisation de mot de passe a été envoyé à votre email',
+            },
+            ar: {
+              type: 'string',
+              example:
+                'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني',
+            },
+          },
+        },
+        success: { type: 'boolean', example: true },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'User not found or invalid email format',
+  })
+  async sendResetPasswordLink(@Body() sendResetLinkDto: SendResetLinkDto) {
+    return await this.authService.sendResetPasswordLink(sendResetLinkDto);
+  }
+
+  // Updated endpoint in auth.controller.ts - Change from GET to POST
+
+  @Post('/verify-reset-token')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Verify password reset token',
+    description:
+      'Verifies if the password reset token is valid and not expired',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token verification result',
+    schema: {
+      properties: {
+        valid: { type: 'boolean', example: true },
+        msg: {
+          type: 'object',
+          properties: {
+            fr: { type: 'string', example: 'Token valide' },
+            ar: { type: 'string', example: 'رمز صالح' },
+          },
+        },
+        userEmail: { type: 'string', example: 'user@example.com' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired token',
+  })
+  async verifyResetToken(@Body() verifyResetTokenDto: VerifyResetTokenDto) {
+    return await this.authService.verifyResetToken(verifyResetTokenDto);
+  }
+  @Post('/reset-password-with-token')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Reset password using token',
+    description: "Resets the user's password using a valid reset token",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully',
+    schema: {
+      properties: {
+        msg: {
+          type: 'object',
+          properties: {
+            fr: {
+              type: 'string',
+              example: 'Mot de passe réinitialisé avec succès',
+            },
+            ar: { type: 'string', example: 'تم إعادة تعيين كلمة المرور بنجاح' },
+          },
+        },
+        success: { type: 'boolean', example: true },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid token, expired token, or invalid password format',
+  })
+  async resetPasswordWithToken(
+    @Body() resetPasswordWithTokenDto: ResetPasswordWithTokenDto,
+  ) {
+    return await this.authService.resetPasswordWithToken(
+      resetPasswordWithTokenDto,
+    );
   }
 }

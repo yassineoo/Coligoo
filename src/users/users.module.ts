@@ -8,11 +8,28 @@ import { HubAdminController } from './admin.controller';
 import { HubAdminService } from './hub-admin.service';
 import { AdminController } from './admin-controller';
 import { AdminService } from './admin-service';
+import { MulterModule } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), EnvConfigModule],
-  controllers: [UsersController,HubAdminController,AdminController],
-  providers: [UsersService ,HubAdminService ,AdminService],
-  exports: [UsersService,HubAdminService,AdminService],
+  imports: [
+    TypeOrmModule.forFeature([User]),
+    EnvConfigModule,
+    MulterModule.register({
+      dest: './uploads/profile-images',
+      storage: diskStorage({
+        destination: './uploads/profile-images',
+        filename: (req, file, cb) => {
+          const filename: string = file.originalname;
+          const stringArr = filename.split('.');
+          const ext = stringArr[stringArr.length - 1];
+          cb(null, `${Date.now()}.${ext}`);
+        },
+      }),
+    }),
+  ],
+  controllers: [UsersController, HubAdminController, AdminController],
+  providers: [UsersService, HubAdminService, AdminService],
+  exports: [UsersService, HubAdminService, AdminService],
 })
 export class UsersModule {}

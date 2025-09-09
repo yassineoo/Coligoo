@@ -12,6 +12,9 @@ import {
   HttpCode,
   UseGuards,
   ParseArrayPipe,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,10 +22,11 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import {
-  CreateHubEmployeeDto,
-  UpdateHubEmployeeDto,
+  CreateTeamMemberDto,
+  UpdateTeamMemberDto,
   HubEmployeeFilterDto,
 } from './dto/admin.dto';
 import { User } from './entities/user.entity';
@@ -34,6 +38,7 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import UserPayload from 'src/auth/types/user-payload.interface';
 import { GetCurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { PaginatedResponse } from 'src/common/utils/paginated-response';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Hub Admin - Employee Management')
 @ApiBearerAuth()
@@ -41,10 +46,26 @@ import { PaginatedResponse } from 'src/common/utils/paginated-response';
 export class HubAdminController {
   constructor(private readonly hubAdminService: HubAdminService) {}
 
+  // Updated endpoints in hub-admin.controller.ts
+
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.HUB_ADMIN)
   @HttpCode(HttpStatus.CREATED)
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('profileImage', {
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/^.*\.(jpg|png|jpeg)$/)) cb(null, true);
+        else {
+          cb(new BadRequestException('File type is not supported'), false);
+        }
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+    }),
+  )
   @ApiOperation({ summary: 'Create a new employee (Hub Admin only)' })
   @ApiResponse({
     status: 201,
@@ -64,15 +85,68 @@ export class HubAdminController {
     description: 'Forbidden - Hub Admin role required',
   })
   async createEmployee(
-    @Body() createHubEmployeeDto: CreateHubEmployeeDto,
+    @UploadedFile() profileImage: Express.Multer.File,
+    @Body() createHubEmployeeDto: CreateTeamMemberDto,
     @GetCurrentUser() currentUser: UserPayload,
   ): Promise<User> {
+    console.log('profileImage', profileImage);
+
+    if (profileImage) {
+      createHubEmployeeDto.fileName = profileImage.filename;
+    }
     return await this.hubAdminService.createHubEmployee(
       createHubEmployeeDto,
       currentUser.userId,
     );
   }
 
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.HUB_ADMIN)
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(
+    FileInterceptor('profileImage', {
+      fileFilter: (req, file, cb) => {
+        if (file.originalname.match(/^.*\.(jpg|png|jpeg)$/)) cb(null, true);
+        else {
+          cb(new BadRequestException('File type is not supported'), false);
+        }
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+    }),
+  )
+  @ApiOperation({ summary: 'Update an employee' })
+  @ApiParam({ name: 'id', description: 'Employee ID', type: 'number' })
+  @ApiResponse({
+    status: 200,
+    description: 'Employee updated successfully',
+    type: User,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Employee not found or access denied',
+  })
+  async updateEmployee(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() profileImage: Express.Multer.File,
+    @Body() updateHubEmployeeDto: UpdateTeamMemberDto,
+    @GetCurrentUser() currentUser: UserPayload,
+  ): Promise<User> {
+    if (profileImage) {
+      updateHubEmployeeDto.fileName = profileImage.filename;
+    }
+    return await this.hubAdminService.updateEmployee(
+      id,
+      currentUser.userId,
+      updateHubEmployeeDto,
+    );
+  }
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.HUB_ADMIN)
@@ -147,36 +221,6 @@ export class HubAdminController {
     @GetCurrentUser() currentUser: UserPayload,
   ): Promise<User> {
     return await this.hubAdminService.findEmployeeById(id, currentUser.userId);
-  }
-
-  @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
-  @ApiOperation({ summary: 'Update an employee' })
-  @ApiParam({ name: 'id', description: 'Employee ID', type: 'number' })
-  @ApiResponse({
-    status: 200,
-    description: 'Employee updated successfully',
-    type: User,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid input data',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Employee not found or access denied',
-  })
-  async updateEmployee(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() updateHubEmployeeDto: UpdateHubEmployeeDto,
-    @GetCurrentUser() currentUser: UserPayload,
-  ): Promise<User> {
-    return await this.hubAdminService.updateEmployee(
-      id,
-      currentUser.userId,
-      updateHubEmployeeDto,
-    );
   }
 
   @Patch(':id/status')

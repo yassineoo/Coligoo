@@ -21,6 +21,9 @@ export class User {
   @Column({ select: false, nullable: true })
   password: string;
 
+  @Column({ select: false, nullable: true })
+  address: string;
+
   @Column({ nullable: true })
   nom: string;
 
@@ -33,9 +36,7 @@ export class User {
   @Column({ type: 'enum', enum: UserRole })
   role: UserRole;
 
-
-
-   // 👇 permissions array of strings
+  // 👇 permissions array of strings
   @Column('simple-array', { nullable: true })
   permissions: string[];
 

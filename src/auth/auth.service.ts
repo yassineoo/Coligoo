@@ -12,7 +12,13 @@ import { MailService } from './mail.service';
 import { LoginDto } from './dto/login.dto';
 import { Hash } from 'src/users/utils/hash';
 import { VerifyEmailDto } from './dto/verify-email.dto';
-import { changePhoneDto, ResetPasswordDto } from './dto/reset-password.dto';
+import {
+  changePhoneDto,
+  ResetPasswordDto,
+  ResetPasswordWithTokenDto,
+  SendResetLinkDto,
+  VerifyResetTokenDto,
+} from './dto/reset-password.dto';
 import { ClientRegisterDto } from './dto/client-register.dto';
 
 import { Request } from 'express';
@@ -409,6 +415,150 @@ export class AuthService {
       throw new BadRequestException({
         fr: "Erreur lors de l'envoi du message. Veuillez réessayer plus tard.",
         ar: 'حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى لاحقاً.',
+      });
+    }
+  }
+
+  async sendResetPasswordLink(sendResetLinkDto: SendResetLinkDto) {
+    const { email, callbackUrl } = sendResetLinkDto;
+
+    // Check if user exists
+    const user = await this.usersService.findUserByEmail(email);
+    if (!user) {
+      throw new BadRequestException({
+        fr: 'Aucun utilisateur trouvé avec cet email',
+        ar: 'لم يتم العثور على أي مستخدم بهذا البريد الإلكتروني',
+      });
+    }
+
+    // Generate reset token with 1 hour expiration
+    const resetToken = await this.jwtService.signAsync(
+      {
+        id: user.id,
+        email: user.email,
+        type: 'PASSWORD_RESET',
+      },
+      {
+        expiresIn: '1h', // Token expires in 1 hour
+      },
+    );
+
+    // Create reset link
+    const resetLink = `${callbackUrl}?token=${resetToken}`;
+
+    // Send email with reset link
+    await this.mailService.sendPasswordResetLinkEmail(
+      user.email,
+      resetLink,
+      user.nom || user.prenom || 'User',
+    );
+
+    return {
+      msg: {
+        fr: 'Un lien de réinitialisation de mot de passe a été envoyé à votre email',
+        ar: 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني',
+      },
+      success: true,
+    };
+  }
+
+  async verifyResetToken(verifyResetTokenDto: VerifyResetTokenDto) {
+    const { token } = verifyResetTokenDto;
+
+    try {
+      // Verify and decode the token
+      const payload = await this.jwtService.verifyAsync(token);
+
+      // Check if token is for password reset
+      if (payload.type !== 'PASSWORD_RESET') {
+        throw new BadRequestException({
+          fr: 'Token invalide',
+          ar: 'رمز غير صالح',
+        });
+      }
+
+      // Check if user still exists
+      const user = await this.usersService.findUserByEmail(payload.email);
+      if (!user) {
+        throw new BadRequestException({
+          fr: 'Token invalide',
+          ar: 'رمز غير صالح',
+        });
+      }
+
+      return {
+        valid: true,
+        msg: {
+          fr: 'Token valide',
+          ar: 'رمز صالح',
+        },
+        userEmail: payload.email,
+      };
+    } catch (error) {
+      // Token is invalid or expired
+      throw new BadRequestException({
+        fr: 'Token invalide ou expiré',
+        ar: 'رمز غير صالح أو منتهي الصلاحية',
+      });
+    }
+  }
+
+  async resetPasswordWithToken(
+    resetPasswordWithTokenDto: ResetPasswordWithTokenDto,
+  ) {
+    const { token, newPassword } = resetPasswordWithTokenDto;
+
+    try {
+      // Verify and decode the token
+      const payload = await this.jwtService.verifyAsync(token);
+
+      // Check if token is for password reset
+      if (payload.type !== 'PASSWORD_RESET') {
+        throw new BadRequestException({
+          fr: 'Token invalide',
+          ar: 'رمز غير صالح',
+        });
+      }
+
+      // Find the user
+      const user = await this.usersService.findUserByEmail(payload.email);
+      if (!user) {
+        throw new BadRequestException({
+          fr: 'Token invalide',
+          ar: 'رمز غير صالح',
+        });
+      }
+
+      // Hash the new password
+      const hashedPassword = await Hash.hash(newPassword);
+
+      // Update user password
+      await this.usersService.update(user.id, {
+        password: hashedPassword,
+      });
+
+      // Send confirmation email
+      await this.mailService.sendPasswordResetConfirmationEmail(
+        user.email,
+        user.nom || user.prenom || 'User',
+      );
+
+      return {
+        msg: {
+          fr: 'Mot de passe réinitialisé avec succès',
+          ar: 'تم إعادة تعيين كلمة المرور بنجاح',
+        },
+        success: true,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      // Token is invalid or expired
+      throw new BadRequestException({
+        fr: 'Token invalide ou expiré',
+        ar: 'رمز غير صالح أو منتهي الصلاحية',
       });
     }
   }

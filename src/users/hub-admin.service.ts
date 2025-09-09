@@ -1,30 +1,49 @@
-import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { Hash } from './utils/hash';
 import { dateCalculator } from 'src/common/utils/date-calculator';
 import { UserRole } from 'src/common/types/roles.enum';
-import { CreateHubEmployeeDto, HubEmployeeFilterDto, UpdateHubEmployeeDto } from './dto/admin.dto';
+import {
+  CreateTeamMemberDto,
+  HubEmployeeFilterDto,
+  UpdateTeamMemberDto,
+} from './dto/admin.dto';
 import { PaginatedResponse } from 'src/common/utils/paginated-response';
+import { rmSync } from 'fs';
+import path from 'path';
+import { AppConfig } from 'src/config/app.config';
 
 @Injectable()
 export class HubAdminService {
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    private readonly appConfig: AppConfig,
   ) {}
 
   /**
    * Create a new hub employee - Only HUB_ADMIN can create HUB_EMPLOYEE
    */
+
+  // Update the constructor to inject AppConfig
+
+  /**
+   * Create a new hub employee - Only HUB_ADMIN can create HUB_EMPLOYEE
+   */
   async createHubEmployee(
-    createHubEmployeeDto: CreateHubEmployeeDto, 
-    hubAdminId: number
+    createHubEmployeeDto: CreateTeamMemberDto,
+    hubAdminId: number,
   ): Promise<User> {
     // Verify that the current user is actually a HUB_ADMIN
     const hubAdmin = await this.usersRepository.findOne({
-      where: { id: hubAdminId, role: UserRole.HUB_ADMIN }
+      where: { id: hubAdminId, role: UserRole.HUB_ADMIN },
     });
 
     if (!hubAdmin) {
@@ -45,26 +64,103 @@ export class HubAdminService {
     }
 
     const hashedPassword = await Hash.hash(createHubEmployeeDto.password);
-    const dob = createHubEmployeeDto.dob ? dateCalculator(createHubEmployeeDto.dob) : null;
 
     const employee = this.usersRepository.create({
       ...createHubEmployeeDto,
       password: hashedPassword,
-      dob,
       role: UserRole.HUB_EMPLOYEE,
       hubId: hubAdminId, // Link employee to this hub admin
+      imgUrl: createHubEmployeeDto.fileName
+        ? `${this.appConfig.getAppUrl()}/api/v1/images/profile-images/${
+            createHubEmployeeDto.fileName
+          }`
+        : null,
     });
+
+    console.log(
+      employee,
+      `${this.appConfig.getAppUrl()}/api/v1/images/profile-images/${
+        createHubEmployeeDto.fileName
+      }`,
+    );
 
     await this.usersRepository.save(employee);
     return employee;
   }
 
   /**
+   * Update an employee - only if they belong to this HUB_ADMIN
+   */
+  async updateEmployee(
+    employeeId: number,
+    hubAdminId: number,
+    updateHubEmployeeDto: UpdateTeamMemberDto,
+  ): Promise<User> {
+    const employee = await this.findEmployeeById(employeeId, hubAdminId);
+
+    // Check if email is being changed and if it's already in use
+    if (
+      updateHubEmployeeDto.email &&
+      updateHubEmployeeDto.email !== employee.email
+    ) {
+      const existingUser = await this.usersRepository.findOneBy({
+        email: updateHubEmployeeDto.email,
+      });
+      if (existingUser) {
+        throw new BadRequestException({
+          fr: 'Cette adresse email est déjà utilisée',
+          ar: 'هذا البريد الإلكتروني مستخدم بالفعل',
+          en: 'This email address is already in use',
+        });
+      }
+    }
+
+    // Handle profile image update
+    if (updateHubEmployeeDto.fileName) {
+      // Delete old image if exists
+      if (employee.imgUrl) {
+        try {
+          const oldFileName = employee.imgUrl.split('/').pop();
+          rmSync(
+            path.join(
+              __dirname,
+              '..',
+              '..',
+              '..',
+              'uploads',
+              'profile-images',
+              oldFileName,
+            ),
+          );
+        } catch (error) {
+          // File might not exist, continue
+        }
+      }
+
+      // Set new image URL
+      updateHubEmployeeDto.imgUrl = `${this.appConfig.getAppUrl()}/api/v1/images/profile-images/${
+        updateHubEmployeeDto.fileName
+      }`;
+    }
+
+    // Hash password if provided
+    if (updateHubEmployeeDto.password) {
+      updateHubEmployeeDto.password = await Hash.hash(
+        updateHubEmployeeDto.password,
+      );
+    }
+
+    Object.assign(employee, updateHubEmployeeDto);
+
+    return await this.usersRepository.save(employee);
+  }
+
+  /**
    * Get all employees for a specific HUB_ADMIN
    */
   async findMyEmployees(
-    hubAdminId: number, 
-    filterDto: HubEmployeeFilterDto
+    hubAdminId: number,
+    filterDto: HubEmployeeFilterDto,
   ): Promise<PaginatedResponse<User>> {
     const {
       search,
@@ -73,7 +169,7 @@ export class HubAdminService {
       page = 1,
       pageSize = 10,
       orderBy = 'createdAt',
-      order = 'DESC'
+      order = 'DESC',
     } = filterDto;
 
     const queryBuilder = this.usersRepository
@@ -85,7 +181,7 @@ export class HubAdminService {
     if (search) {
       queryBuilder.andWhere(
         '(LOWER(user.nom) LIKE LOWER(:search) OR LOWER(user.prenom) LIKE LOWER(:search) OR LOWER(user.fullName) LIKE LOWER(:search) OR LOWER(user.email) LIKE LOWER(:search))',
-        { search: `%${search}%` }
+        { search: `%${search}%` },
       );
     }
 
@@ -98,8 +194,8 @@ export class HubAdminService {
     // Filter by email verified status
     if (isEmailVerified !== undefined) {
       const isVerified = isEmailVerified === 'true';
-      queryBuilder.andWhere('user.isEmailVerified = :isEmailVerified', { 
-        isEmailVerified: isVerified 
+      queryBuilder.andWhere('user.isEmailVerified = :isEmailVerified', {
+        isEmailVerified: isVerified,
       });
     }
 
@@ -123,7 +219,7 @@ export class HubAdminService {
         'user.isEmailVerified',
         'user.imgUrl',
         'user.blocked',
-        'user.hubId'
+        'user.hubId',
       ])
       .skip((page - 1) * pageSize)
       .take(pageSize)
@@ -136,12 +232,15 @@ export class HubAdminService {
   /**
    * Get a specific employee - only if they belong to this HUB_ADMIN
    */
-  async findEmployeeById(employeeId: number, hubAdminId: number): Promise<User> {
+  async findEmployeeById(
+    employeeId: number,
+    hubAdminId: number,
+  ): Promise<User> {
     const employee = await this.usersRepository.findOne({
-      where: { 
-        id: employeeId, 
+      where: {
+        id: employeeId,
         hubId: hubAdminId,
-        role: UserRole.HUB_EMPLOYEE
+        role: UserRole.HUB_EMPLOYEE,
       },
       select: [
         'id',
@@ -158,8 +257,8 @@ export class HubAdminService {
         'isEmailVerified',
         'imgUrl',
         'blocked',
-        'hubId'
-      ]
+        'hubId',
+      ],
     });
 
     if (!employee) {
@@ -170,61 +269,22 @@ export class HubAdminService {
   }
 
   /**
-   * Update an employee - only if they belong to this HUB_ADMIN
-   */
-  async updateEmployee(
-    employeeId: number, 
-    hubAdminId: number, 
-    updateHubEmployeeDto: UpdateHubEmployeeDto
-  ): Promise<User> {
-    const employee = await this.findEmployeeById(employeeId, hubAdminId);
-
-    // Check if email is being changed and if it's already in use
-    if (updateHubEmployeeDto.email && updateHubEmployeeDto.email !== employee.email) {
-      const existingUser = await this.usersRepository.findOneBy({
-        email: updateHubEmployeeDto.email,
-      });
-      if (existingUser) {
-        throw new BadRequestException({
-          fr: 'Cette adresse email est déjà utilisée',
-          ar: 'هذا البريد الإلكتروني مستخدم بالفعل',
-          en: 'This email address is already in use',
-        });
-      }
-    }
-
-    // Hash password if provided
-    if (updateHubEmployeeDto.password) {
-      updateHubEmployeeDto.password = await Hash.hash(updateHubEmployeeDto.password);
-    }
-
-    // Handle date of birth
-    if (updateHubEmployeeDto.dob) {
-      (updateHubEmployeeDto as any).dob = dateCalculator(updateHubEmployeeDto.dob);
-    }
-
-    Object.assign(employee, updateHubEmployeeDto);
-    
-    return await this.usersRepository.save(employee);
-  }
-
-  /**
    * Update employee status (block/unblock) - only if they belong to this HUB_ADMIN
    */
   async updateEmployeeStatus(
-    employeeId: number, 
-    hubAdminId: number, 
-    blocked: boolean
+    employeeId: number,
+    hubAdminId: number,
+    blocked: boolean,
   ): Promise<{ msg: string }> {
     const employee = await this.findEmployeeById(employeeId, hubAdminId);
-    
+
     employee.blocked = blocked;
     await this.usersRepository.save(employee);
-    
+
     return {
-      msg: blocked 
-        ? 'Employé bloqué avec succès !' 
-        : 'Employé débloqué avec succès !'
+      msg: blocked
+        ? 'Employé bloqué avec succès !'
+        : 'Employé débloqué avec succès !',
     };
   }
 
@@ -232,28 +292,31 @@ export class HubAdminService {
    * Update employee permissions - only if they belong to this HUB_ADMIN
    */
   async updateEmployeePermissions(
-    employeeId: number, 
-    hubAdminId: number, 
-    permissions: string[]
+    employeeId: number,
+    hubAdminId: number,
+    permissions: string[],
   ): Promise<User> {
     const employee = await this.findEmployeeById(employeeId, hubAdminId);
-    
+
     employee.permissions = permissions;
     await this.usersRepository.save(employee);
-    
+
     return employee;
   }
 
   /**
    * Delete an employee - only if they belong to this HUB_ADMIN
    */
-  async deleteEmployee(employeeId: number, hubAdminId: number): Promise<{ msg: string }> {
+  async deleteEmployee(
+    employeeId: number,
+    hubAdminId: number,
+  ): Promise<{ msg: string }> {
     const employee = await this.findEmployeeById(employeeId, hubAdminId);
-    
+
     await this.usersRepository.delete(employeeId);
-    
+
     return {
-      msg: 'Employé supprimé avec succès !'
+      msg: 'Employé supprimé avec succès !',
     };
   }
 
@@ -266,26 +329,43 @@ export class HubAdminService {
     blockedEmployees: number;
     verifiedEmployees: number;
   }> {
-    const [totalEmployees, activeEmployees, blockedEmployees, verifiedEmployees] = await Promise.all([
-      this.usersRepository.count({ 
-        where: { hubId: hubAdminId, role: UserRole.HUB_EMPLOYEE } 
+    const [
+      totalEmployees,
+      activeEmployees,
+      blockedEmployees,
+      verifiedEmployees,
+    ] = await Promise.all([
+      this.usersRepository.count({
+        where: { hubId: hubAdminId, role: UserRole.HUB_EMPLOYEE },
       }),
-      this.usersRepository.count({ 
-        where: { hubId: hubAdminId, role: UserRole.HUB_EMPLOYEE, blocked: false } 
+      this.usersRepository.count({
+        where: {
+          hubId: hubAdminId,
+          role: UserRole.HUB_EMPLOYEE,
+          blocked: false,
+        },
       }),
-      this.usersRepository.count({ 
-        where: { hubId: hubAdminId, role: UserRole.HUB_EMPLOYEE, blocked: true } 
+      this.usersRepository.count({
+        where: {
+          hubId: hubAdminId,
+          role: UserRole.HUB_EMPLOYEE,
+          blocked: true,
+        },
       }),
-      this.usersRepository.count({ 
-        where: { hubId: hubAdminId, role: UserRole.HUB_EMPLOYEE, isEmailVerified: true } 
-      })
+      this.usersRepository.count({
+        where: {
+          hubId: hubAdminId,
+          role: UserRole.HUB_EMPLOYEE,
+          isEmailVerified: true,
+        },
+      }),
     ]);
 
     return {
       totalEmployees,
       activeEmployees,
       blockedEmployees,
-      verifiedEmployees
+      verifiedEmployees,
     };
   }
 
@@ -293,24 +373,28 @@ export class HubAdminService {
    * Bulk update employee status - only for employees belonging to this HUB_ADMIN
    */
   async bulkUpdateEmployeeStatus(
-    employeeIds: number[], 
-    hubAdminId: number, 
-    blocked: boolean
+    employeeIds: number[],
+    hubAdminId: number,
+    blocked: boolean,
   ): Promise<{ msg: string; updated: number }> {
     // Verify that all employees belong to this HUB_ADMIN
     const employees = await this.usersRepository.find({
-      where: { 
-        hubId: hubAdminId, 
-        role: UserRole.HUB_EMPLOYEE 
+      where: {
+        hubId: hubAdminId,
+        role: UserRole.HUB_EMPLOYEE,
       },
-      select: ['id']
+      select: ['id'],
     });
 
-    const validEmployeeIds = employees.map(emp => emp.id);
-    const filteredEmployeeIds = employeeIds.filter(id => validEmployeeIds.includes(id));
+    const validEmployeeIds = employees.map((emp) => emp.id);
+    const filteredEmployeeIds = employeeIds.filter((id) =>
+      validEmployeeIds.includes(id),
+    );
 
     if (filteredEmployeeIds.length === 0) {
-      throw new ForbiddenException('No valid employees found for this hub admin');
+      throw new ForbiddenException(
+        'No valid employees found for this hub admin',
+      );
     }
 
     const result = await this.usersRepository
@@ -323,8 +407,10 @@ export class HubAdminService {
       .execute();
 
     return {
-      msg: `${result.affected} employés ${blocked ? 'bloqués' : 'débloqués'} avec succès !`,
-      updated: result.affected || 0
+      msg: `${result.affected} employés ${
+        blocked ? 'bloqués' : 'débloqués'
+      } avec succès !`,
+      updated: result.affected || 0,
     };
   }
 
@@ -332,23 +418,27 @@ export class HubAdminService {
    * Bulk delete employees - only for employees belonging to this HUB_ADMIN
    */
   async bulkDeleteEmployees(
-    employeeIds: number[], 
-    hubAdminId: number
+    employeeIds: number[],
+    hubAdminId: number,
   ): Promise<{ msg: string; deleted: number }> {
     // Verify that all employees belong to this HUB_ADMIN
     const employees = await this.usersRepository.find({
-      where: { 
-        hubId: hubAdminId, 
-        role: UserRole.HUB_EMPLOYEE 
+      where: {
+        hubId: hubAdminId,
+        role: UserRole.HUB_EMPLOYEE,
       },
-      select: ['id']
+      select: ['id'],
     });
 
-    const validEmployeeIds = employees.map(emp => emp.id);
-    const filteredEmployeeIds = employeeIds.filter(id => validEmployeeIds.includes(id));
+    const validEmployeeIds = employees.map((emp) => emp.id);
+    const filteredEmployeeIds = employeeIds.filter((id) =>
+      validEmployeeIds.includes(id),
+    );
 
     if (filteredEmployeeIds.length === 0) {
-      throw new ForbiddenException('No valid employees found for this hub admin');
+      throw new ForbiddenException(
+        'No valid employees found for this hub admin',
+      );
     }
 
     const result = await this.usersRepository
@@ -362,7 +452,7 @@ export class HubAdminService {
 
     return {
       msg: `${result.affected} employés supprimés avec succès !`,
-      deleted: result.affected || 0
+      deleted: result.affected || 0,
     };
   }
 
@@ -371,7 +461,7 @@ export class HubAdminService {
    */
   async verifyHubAdmin(userId: number): Promise<boolean> {
     const user = await this.usersRepository.findOne({
-      where: { id: userId, role: UserRole.HUB_ADMIN }
+      where: { id: userId, role: UserRole.HUB_ADMIN },
     });
     return !!user;
   }
@@ -395,8 +485,8 @@ export class HubAdminService {
         'phoneNumber',
         'sex',
         'isEmailVerified',
-        'imgUrl'
-      ]
+        'imgUrl',
+      ],
     });
 
     if (!hubAdmin) {
