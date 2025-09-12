@@ -48,7 +48,7 @@ export class SendResetLinkDto {
     description: 'Callback URL for password reset',
     example: 'https://yourapp.com/reset-password',
   })
-  @IsUrl()
+  //  @IsUrl()
   @IsNotEmpty()
   callbackUrl: string;
 }

@@ -184,20 +184,6 @@ export class OrdersOperationsService {
         totalPrice: item.totalPrice,
       })) || [];
 
-    // If no order items found, try to create a generic item for legacy orders
-    if (orderItems.length === 0 && originalOrder.productList) {
-      // Get the first available product ID or create a generic product
-      const defaultProductId = await this.getOrCreateDefaultProduct();
-
-      orderItems.push({
-        productId: defaultProductId,
-        productName: originalOrder.productList,
-        quantity: 1,
-        unitPrice: originalOrder.price,
-        totalPrice: originalOrder.price,
-      });
-    }
-
     const duplicateData: CreateOrderDto = {
       orderId: '', // Will be generated in the create() method
       firstname: originalOrder.firstname,

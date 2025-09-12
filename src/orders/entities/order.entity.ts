@@ -58,7 +58,7 @@ export class Order {
   contactPhone: string;
 
   @ApiProperty({ example: '0123456789' })
-  @Column({nullable:true})
+  @Column({ nullable: true })
   contactPhone2: string;
 
   @ApiProperty({ example: 'حي الياسمين' })
@@ -80,11 +80,15 @@ export class Order {
   @Column()
   note: string;
 
-
-
-  @ApiProperty({ example: 'كتب الطبخ' })
-  @Column({ type: 'text' })
-  productList: string;
+  @ApiProperty({
+    example: [
+      { name: 'كتب الطبخ', quantity: 2 },
+      { name: 'مجلة الديكور', quantity: 1 },
+    ],
+    description: 'Products list for unregistered items',
+  })
+  @Column({ type: 'json', nullable: true })
+  productList: { name: string; quantity: number }[] | null;
 
   @ApiProperty({ example: 2400 })
   @Column('decimal', { precision: 10, scale: 2 })
@@ -101,7 +105,6 @@ export class Order {
   @ApiPropertyOptional({ example: 10 })
   @Column({ nullable: true })
   height: number;
-  
 
   @ApiPropertyOptional({ example: 20 })
   @Column({ nullable: true })
@@ -150,24 +153,22 @@ export class Order {
   @Column({ nullable: true })
   cancelledAt: Date;
 
-
-
-
-    // NEW: Replace productList with orderItems relationship
-  @ApiProperty({ 
+  // NEW: Replace productList with orderItems relationship
+  @ApiProperty({
     description: 'Products in this order',
-    type: () => [OrderItem] 
+    type: () => [OrderItem],
   })
-  @OneToMany(() => OrderItem, (orderItem) => orderItem.order, { 
+  @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
     cascade: true,
-    eager: true 
+    eager: true,
   })
   orderItems: OrderItem[];
 
-  
   // Computed properties
   get totalProductsPrice(): number {
-    return this.orderItems?.reduce((sum, item) => sum + item.totalPrice, 0) || 0;
+    return (
+      this.orderItems?.reduce((sum, item) => sum + item.totalPrice, 0) || 0
+    );
   }
 
   get totalOrderPrice(): number {

@@ -15,72 +15,83 @@ import { Type } from 'class-transformer';
 import { PaymentType } from '../entities/order.entity';
 
 export class OrderItemsDto {
-  @ApiProperty({ 
-    example: 1, 
-    description: 'Product ID - unique identifier for the product' 
+  @ApiProperty({
+    example: 1,
+    description: 'Product ID - unique identifier for the product',
   })
   @IsNumber()
   @IsNotEmpty()
   productId: number;
 
-  @ApiProperty({ 
-    example: 'كتاب الطبخ المغربي', 
-    description: 'Product name or description' 
+  @ApiProperty({
+    example: 'كتاب الطبخ المغربي',
+    description: 'Product name or description',
   })
   @IsString()
   @IsNotEmpty()
   productName: string;
 
-  @ApiProperty({ 
-    example: 2, 
-    description: 'Quantity of the product' 
+  @ApiProperty({
+    example: 2,
+    description: 'Quantity of the product',
   })
   @IsNumber()
   @IsPositive()
   quantity: number;
 
-  @ApiProperty({ 
-    example: 1200, 
-    description: 'Price per unit in DA' 
+  @ApiProperty({
+    example: 1200,
+    description: 'Price per unit in DA',
   })
   @IsNumber()
   @IsPositive()
   unitPrice: number;
 
-  @ApiPropertyOptional({ 
-    example: 2400, 
-    description: 'Total price for this item (unitPrice * quantity)' 
+  @ApiPropertyOptional({
+    example: 2400,
+    description: 'Total price for this item (unitPrice * quantity)',
   })
   @IsOptional()
   @IsNumber()
   @IsPositive()
   totalPrice?: number;
 
-  @ApiPropertyOptional({ 
-    example: 'XL', 
-    description: 'Product size if applicable' 
+  @ApiPropertyOptional({
+    example: 'XL',
+    description: 'Product size if applicable',
   })
   @IsOptional()
   @IsString()
   size?: string;
 
-  @ApiPropertyOptional({ 
-    example: 'أحمر', 
-    description: 'Product color if applicable' 
+  @ApiPropertyOptional({
+    example: 'أحمر',
+    description: 'Product color if applicable',
   })
   @IsOptional()
   @IsString()
   color?: string;
 
-  @ApiPropertyOptional({ 
-    example: 'مع تغليف خاص', 
-    description: 'Special notes for this item' 
+  @ApiPropertyOptional({
+    example: 'مع تغليف خاص',
+    description: 'Special notes for this item',
   })
   @IsOptional()
   @IsString()
   itemNote?: string;
 }
 
+export class ProductListItemDto {
+  @ApiProperty({ example: 'كتب الطبخ' })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiProperty({ example: 2 })
+  @IsNumber()
+  @IsPositive()
+  quantity: number;
+}
 export class CreateOrderDto {
   @ApiProperty({ example: 'MySecondOrder' })
   @IsString()
@@ -125,15 +136,22 @@ export class CreateOrderDto {
   @IsNotEmpty()
   toCityId: number;
 
-  @ApiProperty({ 
-    example: 'كتب الطبخ', 
-    description: 'Legacy product list string - use orderItems instead' 
+  // Update the productList field in CreateOrderDto:
+  @ApiProperty({
+    type: [ProductListItemDto],
+    example: [
+      { name: 'كتب الطبخ', quantity: 2 },
+      { name: 'مجلة الديكور', quantity: 1 },
+    ],
+    description: 'Product list for items not registered in database',
   })
   @IsOptional()
-  @IsString()
-  productList?: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProductListItemDto)
+  productList?: ProductListItemDto[];
 
-  @ApiProperty({ 
+  @ApiProperty({
     type: [OrderItemsDto],
     description: 'Array of order items with detailed product information',
     example: [
@@ -145,9 +163,9 @@ export class CreateOrderDto {
         totalPrice: 2400,
         size: 'XL',
         color: 'أحمر',
-        itemNote: 'مع تغليف خاص'
-      }
-    ]
+        itemNote: 'مع تغليف خاص',
+      },
+    ],
   })
   @IsArray()
   @ValidateNested({ each: true })

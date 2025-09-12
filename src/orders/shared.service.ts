@@ -14,6 +14,7 @@ import { OrderTrackingService } from './tracking.service';
 import { BulkUpdateOrderDto, OrderFilterDto, PaginatedResult } from './dto/dto';
 import { UserRole } from 'src/common/types/roles.enum';
 import { OrderItem } from './entities/order-items';
+import { City } from 'src/wilaya/entities/city.entity';
 
 @Injectable()
 export class SharedOrdersService {
@@ -24,10 +25,12 @@ export class SharedOrdersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
+    @InjectRepository(City)
+    private readonly cityRepository: Repository<City>,
     private readonly trackingService: OrderTrackingService, // private readonly notificationService: NotificationService, //private readonly eventEmitter: EventEmitter2,
   ) {}
 
-   async create(createOrderDto: CreateOrderDto, user: User): Promise<Order> {
+  async create(createOrderDto: CreateOrderDto, user: User): Promise<Order> {
     // Generate unique order ID
     const orderId = await this.generateOrderId();
 
@@ -38,27 +41,75 @@ export class SharedOrdersService {
 
     // Use calculated price if no price provided or validate against provided price
     const finalPrice = createOrderDto.price || calculatedPrice;
-    
+
     // Optional: Validate that provided price matches calculated price
-    if (createOrderDto.price && Math.abs(createOrderDto.price - calculatedPrice) > 0.01) {
-      throw new Error('Provided price does not match calculated price from order items');
+    if (
+      createOrderDto.price &&
+      Math.abs(createOrderDto.price - calculatedPrice) > 0.01
+    ) {
+      throw new Error(
+        'Provided price does not match calculated price from order items',
+      );
     }
 
     // Create the main order
+    // Create the main order
+    // Create the main order
     const order = this.orderRepository.create({
-      ...createOrderDto,
       orderId,
       sender: user,
+      firstname: createOrderDto.firstname,
+      lastName: createOrderDto.lastName,
+      contactPhone: createOrderDto.contactPhone,
+      contactPhone2: createOrderDto.contactPhone2,
+      address: createOrderDto.address,
+      note: createOrderDto.note,
+      // Remove these two lines:
+      // fromCityId: createOrderDto.fromCityId,
+      // toCityId: createOrderDto.toCityId,
       price: finalPrice,
-      // Generate productList from orderItems if not provided (backward compatibility)
-      productList: createOrderDto.productList || this.generateProductListFromItems(createOrderDto.orderItems),
+      weight: createOrderDto.weight,
+      height: createOrderDto.height,
+      width: createOrderDto.width,
+      length: createOrderDto.length,
+      isStopDesk: createOrderDto.isStopDesk,
+      freeShipping: createOrderDto.freeShipping,
+      hasExchange: createOrderDto.hasExchange,
+      paymentType: createOrderDto.paymentType,
+      productList:
+        createOrderDto.productList ||
+        this.generateProductListFromItems(createOrderDto.orderItems),
     });
 
+    // Handle cities - add this AFTER order creation but BEFORE saving
+    if (createOrderDto.fromCityId) {
+      const fromCity = await this.cityRepository.findOne({
+        where: { id: createOrderDto.fromCityId },
+      });
+      if (!fromCity) {
+        throw new BadRequestException(
+          `From city with ID ${createOrderDto.fromCityId} not found`,
+        );
+      }
+      order.fromCity = fromCity;
+    }
+
+    if (createOrderDto.toCityId) {
+      const toCity = await this.cityRepository.findOne({
+        where: { id: createOrderDto.toCityId },
+      });
+      if (!toCity) {
+        throw new BadRequestException(
+          `To city with ID ${createOrderDto.toCityId} not found`,
+        );
+      }
+      order.toCity = toCity;
+    }
     // Calculate shipping fee based on cities and weight
     order.shippingFee = await this.calculateShippingFee(
       createOrderDto.fromCityId,
       createOrderDto.toCityId,
-      createOrderDto.weight ,
+      createOrderDto.weight,
     );
 
     // Save the order first
@@ -66,7 +117,7 @@ export class SharedOrdersService {
 
     // Create and save order items
     const orderItems = await this.createOrderItems(orderItemsData, savedOrder);
-    
+
     // Update the saved order with the order items relationship
     savedOrder.orderItems = orderItems;
 
@@ -96,11 +147,16 @@ export class SharedOrdersService {
 
     for (const item of orderItems) {
       // Calculate total price for each item if not provided
-      const itemTotal = item.totalPrice || (item.unitPrice * item.quantity);
-      
+      const itemTotal = item.totalPrice || item.unitPrice * item.quantity;
+
       // Validate that calculated total matches provided total
-      if (item.totalPrice && Math.abs(item.totalPrice - (item.unitPrice * item.quantity)) > 0.01) {
-        throw new Error(`Total price for item ${item.productName} does not match unit price * quantity`);
+      if (
+        item.totalPrice &&
+        Math.abs(item.totalPrice - item.unitPrice * item.quantity) > 0.01
+      ) {
+        throw new Error(
+          `Total price for item ${item.productName} does not match unit price * quantity`,
+        );
       }
 
       calculatedPrice += itemTotal;
@@ -120,7 +176,10 @@ export class SharedOrdersService {
   /**
    * Create order items for the saved order
    */
-  private async createOrderItems(orderItemsData: any[], order: Order): Promise<OrderItem[]> {
+  private async createOrderItems(
+    orderItemsData: any[],
+    order: Order,
+  ): Promise<OrderItem[]> {
     const orderItems = [];
 
     for (const itemData of orderItemsData) {
@@ -139,13 +198,16 @@ export class SharedOrdersService {
   /**
    * Generate product list string from order items for backward compatibility
    */
-  private generateProductListFromItems(orderItems: OrderItemsDto[]): string {
-    return orderItems
-      .map(item => `${item.productName} (x${item.quantity})`)
-      .join(', ');
+  private generateProductListFromItems(
+    orderItems: OrderItemsDto[],
+  ): { name: string; quantity: number }[] {
+    return orderItems.map((item) => ({
+      name: item.productName,
+      quantity: item.quantity,
+    }));
   }
 
-    // Private helper methods
+  // Private helper methods
 
   async generateOrderId(): Promise<string> {
     const year = new Date().getFullYear();
@@ -161,7 +223,7 @@ export class SharedOrdersService {
     return `ORD-${year}-${String(count + 1).padStart(6, '0')}`;
   }
 
-    async calculateShippingFee(
+  async calculateShippingFee(
     fromCityId: number,
     toCityId: number,
     weight: number = 1,
@@ -185,6 +247,4 @@ export class SharedOrdersService {
       200,
     );
   }
-
-
 }
