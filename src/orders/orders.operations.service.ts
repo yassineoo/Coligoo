@@ -10,7 +10,7 @@ import { Order, OrderStatus } from './entities/order.entity';
 import { CreateOrderDto, OrderItemsDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { User } from 'src/users/entities/user.entity';
-import { Product } from 'src/products/entities/product.entity'; // Add missing import
+import { Product } from 'src/products/entities/product.entity';
 import { OrderTrackingService } from './tracking.service';
 import { BulkUpdateOrderDto, OrderFilterDto, PaginatedResult } from './dto/dto';
 import { UserRole } from 'src/common/types/roles.enum';
@@ -29,29 +29,58 @@ export class OrdersOperationsService {
     private readonly cityRepository: Repository<City>,
     @InjectRepository(OrderItem)
     private readonly orderItemRepository: Repository<OrderItem>,
-    @InjectRepository(Product) // Add missing Product repository
+    @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     private readonly sharedOrder: SharedOrdersService,
-
-    private readonly trackingService: OrderTrackingService, // Make optional // private readonly notificationService: NotificationService, // private readonly eventEmitter: EventEmitter2,
+    private readonly trackingService: OrderTrackingService,
   ) {}
 
-  // Updated create method - no longer requires cities
   async create(createOrderDto: CreateOrderDto, user: User): Promise<Order> {
     try {
+      // Validate that either orderItems or productList is provided (but not both or neither)
+      const hasOrderItems =
+        createOrderDto.orderItems && createOrderDto.orderItems.length > 0;
+      const hasProductList =
+        createOrderDto.productList && createOrderDto.productList.length > 0;
+
+      if (!hasOrderItems && !hasProductList) {
+        throw new BadRequestException(
+          'Either orderItems or productList must be provided',
+        );
+      }
+
+      if (hasOrderItems && hasProductList) {
+        throw new BadRequestException(
+          'Cannot provide both orderItems and productList. Choose one method.',
+        );
+      }
+
       // Generate unique order ID
       const orderId = await this.sharedOrder.generateOrderId();
 
-      // Validate and calculate order totals from order items
-      const { calculatedPrice, orderItemsData } = await this.processOrderItems(
-        createOrderDto.orderItems,
-      );
+      let calculatedPrice = 0;
+      let orderItemsData = [];
+
+      // Process based on which data is provided
+      if (hasOrderItems) {
+        // Process registered products with orderItems
+        const result = await this.processOrderItems(createOrderDto.orderItems);
+        calculatedPrice = result.calculatedPrice;
+        orderItemsData = result.orderItemsData;
+      } else if (hasProductList) {
+        // Process unregistered products with productList
+        calculatedPrice = this.calculatePriceFromProductList(
+          createOrderDto.productList,
+          createOrderDto.price,
+        );
+      }
 
       // Use calculated price if no price provided or validate against provided price
       const finalPrice = createOrderDto.price || calculatedPrice;
 
-      // Optional: Validate that provided price matches calculated price
+      // Optional: Validate that provided price matches calculated price (only for orderItems)
       if (
+        hasOrderItems &&
         createOrderDto.price &&
         Math.abs(createOrderDto.price - calculatedPrice) > 0.01
       ) {
@@ -98,9 +127,10 @@ export class OrdersOperationsService {
         contactPhone2: createOrderDto.contactPhone2,
         address: createOrderDto.address,
         note: createOrderDto.note,
-        fromCity, // Can be null initially
-        toCity, // Can be null initially
-        price: finalPrice,
+        fromCity,
+        toCity,
+        price: finalPrice, // Total price of all products
+        productList: createOrderDto.productList || null, // Only set if using productList
         weight: createOrderDto.weight,
         height: createOrderDto.height,
         width: createOrderDto.width,
@@ -114,25 +144,30 @@ export class OrdersOperationsService {
 
       // Only calculate shipping if both cities are provided
       if (fromCity && toCity) {
+        const totalWeight =
+          createOrderDto.weight ||
+          (hasOrderItems
+            ? this.calculateTotalWeight(createOrderDto.orderItems)
+            : this.calculateWeightFromProductList(createOrderDto.productList));
+
         order.shippingFee = await this.sharedOrder.calculateShippingFee(
           createOrderDto.fromCityId,
           createOrderDto.toCityId,
-          createOrderDto.weight ||
-            this.calculateTotalWeight(createOrderDto.orderItems),
+          totalWeight,
         );
       }
 
       // Save the order first
       const savedOrder = await this.orderRepository.save(order);
 
-      // Create and save order items
-      const orderItems = await this.createOrderItems(
-        orderItemsData,
-        savedOrder,
-      );
-
-      // Update the saved order with the order items relationship
-      savedOrder.orderItems = orderItems;
+      // Create and save order items only if using orderItems
+      if (hasOrderItems) {
+        const orderItems = await this.createOrderItems(
+          orderItemsData,
+          savedOrder,
+        );
+        savedOrder.orderItems = orderItems;
+      }
 
       // Create initial tracking entry
       try {
@@ -174,38 +209,72 @@ export class OrdersOperationsService {
       user,
     );
 
-    // Map original order items to OrderItemsDto format
-    const orderItems: OrderItemsDto[] =
-      originalOrder.orderItems?.map((item) => ({
-        productId: item.productId,
-        productName: item.product.productName, // Use productName directly from OrderItem
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalPrice: item.totalPrice,
-      })) || [];
+    // Check if original order has orderItems or productList
+    const hasOrderItems =
+      originalOrder.orderItems && originalOrder.orderItems.length > 0;
+    const hasProductList =
+      originalOrder.productList && originalOrder.productList.length > 0;
 
-    const duplicateData: CreateOrderDto = {
-      orderId: '', // Will be generated in the create() method
-      firstname: originalOrder.firstname,
-      lastName: originalOrder.lastName,
-      contactPhone: originalOrder.contactPhone,
-      contactPhone2: originalOrder.contactPhone2,
-      address: originalOrder.address,
-      note: originalOrder.note,
-      fromCityId: originalOrder.fromCity.id,
-      toCityId: originalOrder.toCity.id,
-      productList: originalOrder.productList, // Keep for backward compatibility
-      orderItems: orderItems, // New structured order items
-      price: originalOrder.price,
-      weight: originalOrder.weight,
-      height: originalOrder.height,
-      width: originalOrder.width,
-      length: originalOrder.length,
-      isStopDesk: originalOrder.isStopDesk,
-      freeShipping: originalOrder.freeShipping,
-      hasExchange: originalOrder.hasExchange,
-      paymentType: originalOrder.paymentType,
-    };
+    let duplicateData: CreateOrderDto;
+
+    if (hasOrderItems) {
+      // Duplicate with orderItems
+      const orderItems: OrderItemsDto[] = originalOrder.orderItems.map(
+        (item) => ({
+          productId: item.productId,
+          productName: item.product.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+        }),
+      );
+
+      duplicateData = {
+        orderId: '', // Will be generated in the create() method
+        firstname: originalOrder.firstname,
+        lastName: originalOrder.lastName,
+        contactPhone: originalOrder.contactPhone,
+        contactPhone2: originalOrder.contactPhone2,
+        address: originalOrder.address,
+        note: originalOrder.note,
+        fromCityId: originalOrder.fromCity?.id,
+        toCityId: originalOrder.toCity?.id,
+        orderItems: orderItems,
+        price: originalOrder.price,
+        weight: originalOrder.weight,
+        height: originalOrder.height,
+        width: originalOrder.width,
+        length: originalOrder.length,
+        isStopDesk: originalOrder.isStopDesk,
+        freeShipping: originalOrder.freeShipping,
+        hasExchange: originalOrder.hasExchange,
+        paymentType: originalOrder.paymentType,
+      };
+    } else {
+      // Duplicate with productList
+      duplicateData = {
+        orderId: '', // Will be generated in the create() method
+        firstname: originalOrder.firstname,
+        lastName: originalOrder.lastName,
+        contactPhone: originalOrder.contactPhone,
+        contactPhone2: originalOrder.contactPhone2,
+        address: originalOrder.address,
+        note: originalOrder.note,
+        fromCityId: originalOrder.fromCity?.id,
+        toCityId: originalOrder.toCity?.id,
+        productList: originalOrder.productList,
+        orderItems: [], // Empty array to satisfy DTO requirements
+        price: originalOrder.price,
+        weight: originalOrder.weight,
+        height: originalOrder.height,
+        width: originalOrder.width,
+        length: originalOrder.length,
+        isStopDesk: originalOrder.isStopDesk,
+        freeShipping: originalOrder.freeShipping,
+        hasExchange: originalOrder.hasExchange,
+        paymentType: originalOrder.paymentType,
+      };
+    }
 
     return this.create(duplicateData, user);
   }
@@ -219,12 +288,7 @@ export class OrdersOperationsService {
   ): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { id: orderId, sender: { id: user.id } },
-      relations: [
-        'sender',
-        'fromCity',
-        'toCity',
-        'orderItems', // Include order items relation
-      ],
+      relations: ['sender', 'fromCity', 'toCity', 'orderItems'],
     });
 
     if (!order) {
@@ -237,7 +301,7 @@ export class OrdersOperationsService {
   }
 
   /**
-   * Process order items and calculate totals
+   * Process order items and calculate totals (for registered products)
    */
   private async processOrderItems(orderItems: OrderItemsDto[]) {
     if (!orderItems || orderItems.length === 0) {
@@ -276,6 +340,37 @@ export class OrdersOperationsService {
   }
 
   /**
+   * Calculate price from productList (for unregistered products)
+   */
+  private calculatePriceFromProductList(
+    productList: { name: string; quantity: number }[],
+    providedPrice?: number,
+  ): number {
+    if (providedPrice) {
+      return providedPrice;
+    }
+
+    // Since productList items don't have individual prices,
+    // we need the user to provide the total price
+    throw new BadRequestException(
+      'When using productList, you must provide the total price',
+    );
+  }
+
+  /**
+   * Calculate total weight from productList
+   */
+  private calculateWeightFromProductList(
+    productList: { name: string; quantity: number }[],
+  ): number {
+    const defaultWeightPerItem = 0.5; // kg
+    return productList.reduce(
+      (total, item) => total + item.quantity * defaultWeightPerItem,
+      0,
+    );
+  }
+
+  /**
    * Create order items for the saved order
    */
   private async createOrderItems(
@@ -295,15 +390,6 @@ export class OrdersOperationsService {
     }
 
     return orderItems;
-  }
-
-  /**
-   * Generate product list string from order items for backward compatibility
-   */
-  private generateProductListFromItems(orderItems: OrderItemsDto[]): string {
-    return orderItems
-      .map((item) => `${item.productName} (x${item.quantity})`)
-      .join(', ');
   }
 
   /**

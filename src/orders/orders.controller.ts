@@ -49,7 +49,12 @@ export class OrdersController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.VENDOR, UserRole.ADMIN)
+  @Roles(
+    UserRole.VENDOR,
+    UserRole.ADMIN,
+    UserRole.HUB_ADMIN,
+    UserRole.HUB_EMPLOYEE,
+  )
   @ApiOperation({ summary: 'Create a new order' })
   @ApiResponse({
     status: 201,

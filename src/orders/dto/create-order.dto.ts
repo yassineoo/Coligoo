@@ -168,9 +168,10 @@ export class CreateOrderDto {
     ],
   })
   @IsArray()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => OrderItemsDto)
-  orderItems: OrderItemsDto[];
+  orderItems?: OrderItemsDto[];
 
   @ApiProperty({ example: 2400 })
   @IsNumber()
