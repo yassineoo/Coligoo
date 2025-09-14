@@ -40,17 +40,25 @@ import { AppleStrategy } from './strategies/apple.strategy';
       transport: {
         host: 'smtp.gmail.com',
         port: parseInt(process.env.EMAIL_PORT) || 587,
-        secure: false, // true for 465, false for other ports
+        secure: false,
         auth: {
-          user: 'aissanyris84@gmail.com', // Gmail address
-          pass: 'fluccvroupxcmrdv', // App password
+          user: 'aissanyris84@gmail.com',
+          pass: 'fluccvroupxcmrdv',
         },
         tls: {
-          rejectUnauthorized: false, // Important for VPS
+          rejectUnauthorized: false,
         },
+        // Add these timeout settings for better VPS compatibility
+        connectionTimeout: 60000, // 60 seconds
+        greetingTimeout: 30000, // 30 seconds
+        socketTimeout: 75000, // 75 seconds
+        // Add pool settings to handle connection better
+        pool: true,
+        maxConnections: 1,
+        maxMessages: 10,
       },
       defaults: {
-        from: `"Coligoo" <"aissanyris84">`,
+        from: '"Coligoo" <aissanyris84@gmail.com>', // Fixed syntax here
       },
     }),
   ],
