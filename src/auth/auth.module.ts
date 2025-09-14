@@ -36,30 +36,35 @@ import { AppleStrategy } from './strategies/apple.strategy';
       },
     }),
     */
-    MailerModule.forRoot({
-      transport: {
-        host: 'smtp.gmail.com',
-        port: parseInt(process.env.EMAIL_PORT) || 587,
-        secure: false,
-        auth: {
-          user: 'aissanyris84@gmail.com',
-          pass: 'fluccvroupxcmrdv',
+    MailerModule.forRootAsync({
+      useFactory: () => ({
+        transport: {
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: {
+            user: 'aissanyris84@gmail.com',
+            pass: 'fluccvroupxcmrdv',
+          },
+          tls: {
+            rejectUnauthorized: false,
+            ciphers: 'SSLv3',
+          },
+          connectionTimeout: 60000,
+          greetingTimeout: 30000,
+          socketTimeout: 75000,
+          pool: true,
+          maxConnections: 1,
+          rateDelta: 1000,
+          rateLimit: 5,
+          // Add debug for troubleshooting
+          debug: process.env.NODE_ENV === 'development',
+          logger: process.env.NODE_ENV === 'development',
         },
-        tls: {
-          rejectUnauthorized: false,
+        defaults: {
+          from: '"Coligoo" <aissanyris84@gmail.com>',
         },
-        // Add these timeout settings for better VPS compatibility
-        connectionTimeout: 60000, // 60 seconds
-        greetingTimeout: 30000, // 30 seconds
-        socketTimeout: 75000, // 75 seconds
-        // Add pool settings to handle connection better
-        pool: true,
-        maxConnections: 1,
-        maxMessages: 10,
-      },
-      defaults: {
-        from: '"Coligoo" <aissanyris84@gmail.com>', // Fixed syntax here
-      },
+      }),
     }),
   ],
   controllers: [AuthController],
