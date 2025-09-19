@@ -23,7 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+import { BulkDeleteOrdersDto, UpdateOrderDto } from './dto/update-order.dto';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
@@ -359,16 +359,29 @@ export class OrdersController {
     return this.ordersService.bulkUpdateOrders(bulkUpdateDto);
   }
 
-  @Delete(':id')
+  @Delete('bulk')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Delete an order (Admin only)' })
-  @ApiParam({ name: 'id', type: 'number', example: 1 })
-  @ApiResponse({ status: 200, description: 'Order successfully deleted' })
-  @ApiResponse({ status: 404, description: 'Order not found' })
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.VENDOR,
+    UserRole.HUB_ADMIN,
+    UserRole.HUB_EMPLOYEE,
+    UserRole.MODERATOR,
+
+    UserRole.DELIVERYMAN,
+  )
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.ordersService.remove(id);
+  @ApiOperation({ summary: 'Bulk delete orders (Admin only)' })
+  @ApiResponse({
+    status: 204,
+    description: 'Orders successfully deleted',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Some orders could not be deleted',
+  })
+  async bulkDelete(@Body() body: BulkDeleteOrdersDto): Promise<void> {
+    await this.ordersService.bulkRemove(body.orderIds);
   }
 
   @Patch(':id/cancel')

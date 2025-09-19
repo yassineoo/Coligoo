@@ -1,21 +1,31 @@
-import { Controller, Get, Param, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseInterceptors } from '@nestjs/common';
 import { WilayaService } from './wilaya.service';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CacheInterceptor } from '@nestjs/cache-manager';
 
-@ApiTags("Wilaya")
+@ApiTags('Wilaya')
 @Controller('wilaya')
 @UseInterceptors(CacheInterceptor)
 export class WilayaController {
   constructor(private readonly wilayaService: WilayaService) {}
 
-  @Get("/")
+  @Get('/')
   async getAllWilayas() {
-    return await this.wilayaService.getAll()
+    return await this.wilayaService.getAll();
   }
 
-  @Get("/:code/cities")
-  async getWilayaCities(@Param("code") code: string) {
-    return await this.wilayaService.getWilayaCities(code)
+  @Get('/:code/cities')
+  async getWilayaCities(@Param('code') code: string) {
+    return await this.wilayaService.getWilayaCities(code);
+  }
+  @Get('/cities')
+  @ApiQuery({
+    name: 'code',
+    type: String,
+    required: true,
+    description: 'Wilaya code',
+  })
+  async getWilayaCitiesCode(@Query('code') code: string) {
+    return await this.wilayaService.getWilayaCities(code);
   }
 }

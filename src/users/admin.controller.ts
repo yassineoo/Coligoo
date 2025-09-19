@@ -28,6 +28,7 @@ import {
   CreateTeamMemberDto,
   UpdateTeamMemberDto,
   HubEmployeeFilterDto,
+  BulkDeleteEmployeesDto,
 } from './dto/admin.dto';
 import { User } from './entities/user.entity';
 import { HubAdminService } from './hub-admin.service';
@@ -319,10 +320,10 @@ export class HubAdminController {
     description: 'Employees deleted successfully',
   })
   async bulkDeleteEmployees(
-    @Body('employeeIds', new ParseArrayPipe({ items: Number }))
-    employeeIds: number[],
+    @Body() body: BulkDeleteEmployeesDto,
     @GetCurrentUser() currentUser: UserPayload,
   ): Promise<{ msg: string; deleted: number }> {
+    const { employeeIds } = body;
     return await this.hubAdminService.bulkDeleteEmployees(
       employeeIds,
       currentUser.userId,

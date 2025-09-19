@@ -8,6 +8,7 @@ import {
   IsBoolean,
   IsDateString,
   IsNumber,
+  ArrayNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
@@ -358,4 +359,16 @@ export class AdminUserFilterDto {
   @IsOptional()
   @IsEnum(['ASC', 'DESC'])
   order?: 'ASC' | 'DESC' = 'DESC';
+}
+
+export class BulkDeleteEmployeesDto {
+  @ApiProperty({
+    type: [Number],
+    description: 'Array of employee IDs to delete',
+    example: [1, 2, 3],
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsNumber({}, { each: true })
+  employeeIds: number[];
 }

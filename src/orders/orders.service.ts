@@ -551,19 +551,30 @@ export class OrdersService {
     };
   }
 
-  async remove(id: number): Promise<void> {
-    const order = await this.orderRepository.findOne({ where: { id } });
+  async bulkRemove(orderIds: number[]): Promise<void> {
+    const orders = await this.orderRepository.find({
+      where: { id: In(orderIds) },
+    });
 
-    if (!order) {
-      throw new NotFoundException(`Order #${id} not found`);
+    if (!orders.length) {
+      throw new NotFoundException('No orders found for the given IDs');
     }
 
-    // Only allow deletion of cancelled orders or by admin
-    if (order.status !== OrderStatus.CANCELLED) {
-      throw new BadRequestException('Only cancelled orders can be deleted');
+    const undeletable = orders.filter(
+      (order) =>
+        order.status !== OrderStatus.CANCELLED &&
+        order.status !== OrderStatus.PENDING,
+    );
+
+    if (undeletable.length > 0) {
+      throw new BadRequestException(
+        `Only cancelled orders can be deleted. Problematic order IDs: ${undeletable
+          .map((o) => o.id)
+          .join(', ')}`,
+      );
     }
 
-    await this.orderRepository.remove(order);
+    await this.orderRepository.remove(orders);
   }
 
   async getOrderStatistics(user: User) {
