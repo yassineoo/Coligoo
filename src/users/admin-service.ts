@@ -1,11 +1,20 @@
-import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { Hash } from './utils/hash';
 import { dateCalculator } from 'src/common/utils/date-calculator';
 import { UserRole } from 'src/common/types/roles.enum';
-import { CreateAdminUserDto, UpdateAdminUserDto, AdminUserFilterDto } from './dto/admin.dto';
+import {
+  CreateAdminUserDto,
+  UpdateAdminUserDto,
+  AdminUserFilterDto,
+} from './dto/admin.dto';
 import { PaginatedResponse } from 'src/common/utils/paginated-response';
 
 @Injectable()
@@ -35,13 +44,15 @@ export class AdminService {
     // Validate hubId for HUB_EMPLOYEE
     if (createAdminUserDto.role === UserRole.HUB_EMPLOYEE) {
       if (!createAdminUserDto.hubId) {
-        throw new BadRequestException('hubId is required for HUB_EMPLOYEE role');
+        throw new BadRequestException(
+          'hubId is required for HUB_EMPLOYEE role',
+        );
       }
-      
+
       const hubAdmin = await this.usersRepository.findOne({
-        where: { id: createAdminUserDto.hubId, role: UserRole.HUB_ADMIN }
+        where: { id: createAdminUserDto.hubId, role: UserRole.HUB_ADMIN },
       });
-      
+
       if (!hubAdmin) {
         throw new BadRequestException('Invalid hubId: Hub admin not found');
       }
@@ -61,7 +72,9 @@ export class AdminService {
   /**
    * Get all users with filtering and pagination
    */
-  async findAllUsers(filterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllUsers(
+    filterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     const {
       search,
       role,
@@ -70,7 +83,7 @@ export class AdminService {
       page = 1,
       pageSize = 10,
       orderBy = 'createdAt',
-      order = 'DESC'
+      order = 'DESC',
     } = filterDto;
 
     const queryBuilder = this.usersRepository.createQueryBuilder('user');
@@ -79,7 +92,7 @@ export class AdminService {
     if (search) {
       queryBuilder.andWhere(
         '(LOWER(user.nom) LIKE LOWER(:search) OR LOWER(user.prenom) LIKE LOWER(:search) OR LOWER(user.fullName) LIKE LOWER(:search) OR LOWER(user.email) LIKE LOWER(:search))',
-        { search: `%${search}%` }
+        { search: `%${search}%` },
       );
     }
 
@@ -97,8 +110,8 @@ export class AdminService {
     // Filter by email verified status
     if (isEmailVerified !== undefined) {
       const isVerified = isEmailVerified === 'true';
-      queryBuilder.andWhere('user.isEmailVerified = :isEmailVerified', { 
-        isEmailVerified: isVerified 
+      queryBuilder.andWhere('user.isEmailVerified = :isEmailVerified', {
+        isEmailVerified: isVerified,
       });
     }
 
@@ -117,9 +130,7 @@ export class AdminService {
         'user.role',
         'user.permissions',
         'user.createdAt',
-        'user.dob',
         'user.phoneNumber',
-        'user.sex',
         'user.isEmailVerified',
         'user.imgUrl',
         'user.blocked',
@@ -127,7 +138,7 @@ export class AdminService {
         'hubAdmin.id',
         'hubAdmin.nom',
         'hubAdmin.prenom',
-        'hubAdmin.email'
+        'hubAdmin.email',
       ])
       .skip((page - 1) * pageSize)
       .take(pageSize)
@@ -140,10 +151,12 @@ export class AdminService {
   /**
    * Get all moderators
    */
-  async findAllModerators(filterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllModerators(
+    filterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     const filterWithModeratorRole = {
       ...filterDto,
-      role: UserRole.MODERATOR
+      role: UserRole.MODERATOR,
     };
     return this.findAllUsers(filterWithModeratorRole);
   }
@@ -151,10 +164,12 @@ export class AdminService {
   /**
    * Get all hub admins
    */
-  async findAllHubAdmins(filterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllHubAdmins(
+    filterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     const filterWithHubAdminRole = {
       ...filterDto,
-      role: UserRole.HUB_ADMIN
+      role: UserRole.HUB_ADMIN,
     };
     return this.findAllUsers(filterWithHubAdminRole);
   }
@@ -162,10 +177,12 @@ export class AdminService {
   /**
    * Get all hub employees
    */
-  async findAllHubEmployees(filterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllHubEmployees(
+    filterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     const filterWithHubEmployeeRole = {
       ...filterDto,
-      role: UserRole.HUB_EMPLOYEE
+      role: UserRole.HUB_EMPLOYEE,
     };
     return this.findAllUsers(filterWithHubEmployeeRole);
   }
@@ -173,10 +190,12 @@ export class AdminService {
   /**
    * Get all vendors
    */
-  async findAllVendors(filterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllVendors(
+    filterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     const filterWithVendorRole = {
       ...filterDto,
-      role: UserRole.VENDOR
+      role: UserRole.VENDOR,
     };
     return this.findAllUsers(filterWithVendorRole);
   }
@@ -184,10 +203,12 @@ export class AdminService {
   /**
    * Get all clients
    */
-  async findAllClients(filterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllClients(
+    filterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     const filterWithClientRole = {
       ...filterDto,
-      role: UserRole.CLIENT
+      role: UserRole.CLIENT,
     };
     return this.findAllUsers(filterWithClientRole);
   }
@@ -195,10 +216,12 @@ export class AdminService {
   /**
    * Get all deliverymen
    */
-  async findAllDeliverymen(filterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllDeliverymen(
+    filterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     const filterWithDeliverymanRole = {
       ...filterDto,
-      role: UserRole.DELIVERYMAN
+      role: UserRole.DELIVERYMAN,
     };
     return this.findAllUsers(filterWithDeliverymanRole);
   }
@@ -206,10 +229,12 @@ export class AdminService {
   /**
    * Get all admins
    */
-  async findAllAdmins(filterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllAdmins(
+    filterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     const filterWithAdminRole = {
       ...filterDto,
-      role: UserRole.ADMIN
+      role: UserRole.ADMIN,
     };
     return this.findAllUsers(filterWithAdminRole);
   }
@@ -230,14 +255,12 @@ export class AdminService {
         'role',
         'permissions',
         'createdAt',
-        'dob',
         'phoneNumber',
-        'sex',
         'isEmailVerified',
         'imgUrl',
         'blocked',
-        'hubId'
-      ]
+        'hubId',
+      ],
     });
 
     if (!user) {
@@ -250,7 +273,10 @@ export class AdminService {
   /**
    * Update a user
    */
-  async updateUser(id: number, updateAdminUserDto: UpdateAdminUserDto): Promise<User> {
+  async updateUser(
+    id: number,
+    updateAdminUserDto: UpdateAdminUserDto,
+  ): Promise<User> {
     const user = await this.findUserById(id);
 
     // Check if email is being changed and if it's already in use
@@ -268,12 +294,15 @@ export class AdminService {
     }
 
     // Validate hubId for HUB_EMPLOYEE
-    if (updateAdminUserDto.role === UserRole.HUB_EMPLOYEE || (updateAdminUserDto.hubId && user.role === UserRole.HUB_EMPLOYEE)) {
+    if (
+      updateAdminUserDto.role === UserRole.HUB_EMPLOYEE ||
+      (updateAdminUserDto.hubId && user.role === UserRole.HUB_EMPLOYEE)
+    ) {
       if (updateAdminUserDto.hubId) {
         const hubAdmin = await this.usersRepository.findOne({
-          where: { id: updateAdminUserDto.hubId, role: UserRole.HUB_ADMIN }
+          where: { id: updateAdminUserDto.hubId, role: UserRole.HUB_ADMIN },
         });
-        
+
         if (!hubAdmin) {
           throw new BadRequestException('Invalid hubId: Hub admin not found');
         }
@@ -282,41 +311,47 @@ export class AdminService {
 
     // Hash password if provided
     if (updateAdminUserDto.password) {
-      updateAdminUserDto.password = await Hash.hash(updateAdminUserDto.password);
+      updateAdminUserDto.password = await Hash.hash(
+        updateAdminUserDto.password,
+      );
     }
 
-
-
     Object.assign(user, updateAdminUserDto);
-    
+
     return await this.usersRepository.save(user);
   }
 
   /**
    * Update user status (block/unblock)
    */
-  async updateUserStatus(id: number, blocked: boolean): Promise<{ msg: string }> {
+  async updateUserStatus(
+    id: number,
+    blocked: boolean,
+  ): Promise<{ msg: string }> {
     const user = await this.findUserById(id);
-    
+
     user.blocked = blocked;
     await this.usersRepository.save(user);
-    
+
     return {
-      msg: blocked 
-        ? 'Utilisateur bloqué avec succès !' 
-        : 'Utilisateur débloqué avec succès !'
+      msg: blocked
+        ? 'Utilisateur bloqué avec succès !'
+        : 'Utilisateur débloqué avec succès !',
     };
   }
 
   /**
    * Update user permissions
    */
-  async updateUserPermissions(id: number, permissions: string[]): Promise<User> {
+  async updateUserPermissions(
+    id: number,
+    permissions: string[],
+  ): Promise<User> {
     const user = await this.findUserById(id);
-    
+
     user.permissions = permissions;
     await this.usersRepository.save(user);
-    
+
     return user;
   }
 
@@ -325,24 +360,24 @@ export class AdminService {
    */
   async deleteUser(id: number): Promise<{ msg: string }> {
     const user = await this.findUserById(id);
-    
+
     // Check if user has employees (for HUB_ADMIN)
     if (user.role === UserRole.HUB_ADMIN) {
       const employeeCount = await this.usersRepository.count({
-        where: { hubId: id, role: UserRole.HUB_EMPLOYEE }
+        where: { hubId: id, role: UserRole.HUB_EMPLOYEE },
       });
-      
+
       if (employeeCount > 0) {
         throw new BadRequestException(
-          `Cannot delete hub admin with ${employeeCount} employees. Please reassign or delete employees first.`
+          `Cannot delete hub admin with ${employeeCount} employees. Please reassign or delete employees first.`,
         );
       }
     }
-    
+
     await this.usersRepository.delete(id);
-    
+
     return {
-      msg: 'Utilisateur supprimé avec succès !'
+      msg: 'Utilisateur supprimé avec succès !',
     };
   }
 
@@ -362,16 +397,16 @@ export class AdminService {
     verified: number;
   }> {
     const [
-      total, 
-      admins, 
-      hubAdmins, 
-      moderators, 
-      vendors, 
-      clients, 
-      deliverymen, 
-      hubEmployees, 
-      blocked, 
-      verified
+      total,
+      admins,
+      hubAdmins,
+      moderators,
+      vendors,
+      clients,
+      deliverymen,
+      hubEmployees,
+      blocked,
+      verified,
     ] = await Promise.all([
       this.usersRepository.count(),
       this.usersRepository.count({ where: { role: UserRole.ADMIN } }),
@@ -382,7 +417,7 @@ export class AdminService {
       this.usersRepository.count({ where: { role: UserRole.DELIVERYMAN } }),
       this.usersRepository.count({ where: { role: UserRole.HUB_EMPLOYEE } }),
       this.usersRepository.count({ where: { blocked: true } }),
-      this.usersRepository.count({ where: { isEmailVerified: true } })
+      this.usersRepository.count({ where: { isEmailVerified: true } }),
     ]);
 
     return {
@@ -395,17 +430,20 @@ export class AdminService {
       deliverymen,
       hubEmployees,
       blocked,
-      verified
+      verified,
     };
   }
 
   /**
    * Get employees for a specific hub admin
    */
-  async getHubEmployees(hubAdminId: number, filterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async getHubEmployees(
+    hubAdminId: number,
+    filterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     // Verify hub admin exists
     const hubAdmin = await this.usersRepository.findOne({
-      where: { id: hubAdminId, role: UserRole.HUB_ADMIN }
+      where: { id: hubAdminId, role: UserRole.HUB_ADMIN },
     });
 
     if (!hubAdmin) {
@@ -419,7 +457,7 @@ export class AdminService {
       page = 1,
       pageSize = 10,
       orderBy = 'createdAt',
-      order = 'DESC'
+      order = 'DESC',
     } = filterDto;
 
     const queryBuilder = this.usersRepository
@@ -431,7 +469,7 @@ export class AdminService {
     if (search) {
       queryBuilder.andWhere(
         '(LOWER(user.nom) LIKE LOWER(:search) OR LOWER(user.prenom) LIKE LOWER(:search) OR LOWER(user.fullName) LIKE LOWER(:search) OR LOWER(user.email) LIKE LOWER(:search))',
-        { search: `%${search}%` }
+        { search: `%${search}%` },
       );
     }
 
@@ -444,8 +482,8 @@ export class AdminService {
     // Filter by email verified status
     if (isEmailVerified !== undefined) {
       const isVerified = isEmailVerified === 'true';
-      queryBuilder.andWhere('user.isEmailVerified = :isEmailVerified', { 
-        isEmailVerified: isVerified 
+      queryBuilder.andWhere('user.isEmailVerified = :isEmailVerified', {
+        isEmailVerified: isVerified,
       });
     }
 
@@ -463,13 +501,11 @@ export class AdminService {
         'user.role',
         'user.permissions',
         'user.createdAt',
-        'user.dob',
         'user.phoneNumber',
-        'user.sex',
         'user.isEmailVerified',
         'user.imgUrl',
         'user.blocked',
-        'user.hubId'
+        'user.hubId',
       ])
       .skip((page - 1) * pageSize)
       .take(pageSize)
@@ -482,7 +518,10 @@ export class AdminService {
   /**
    * Bulk update user status
    */
-  async bulkUpdateUserStatus(userIds: number[], blocked: boolean): Promise<{ msg: string; updated: number }> {
+  async bulkUpdateUserStatus(
+    userIds: number[],
+    blocked: boolean,
+  ): Promise<{ msg: string; updated: number }> {
     const result = await this.usersRepository
       .createQueryBuilder()
       .update(User)
@@ -491,15 +530,19 @@ export class AdminService {
       .execute();
 
     return {
-      msg: `${result.affected} utilisateurs ${blocked ? 'bloqués' : 'débloqués'} avec succès !`,
-      updated: result.affected || 0
+      msg: `${result.affected} utilisateurs ${
+        blocked ? 'bloqués' : 'débloqués'
+      } avec succès !`,
+      updated: result.affected || 0,
     };
   }
 
   /**
    * Bulk delete users
    */
-  async bulkDeleteUsers(userIds: number[]): Promise<{ msg: string; deleted: number }> {
+  async bulkDeleteUsers(
+    userIds: number[],
+  ): Promise<{ msg: string; deleted: number }> {
     // Check for hub admins with employees
     const hubAdminsWithEmployees = await this.usersRepository
       .createQueryBuilder('user')
@@ -512,7 +555,9 @@ export class AdminService {
 
     if (hubAdminsWithEmployees.length > 0) {
       throw new BadRequestException(
-        `Cannot delete hub admins with employees: ${hubAdminsWithEmployees.map(h => h.email).join(', ')}`
+        `Cannot delete hub admins with employees: ${hubAdminsWithEmployees
+          .map((h) => h.email)
+          .join(', ')}`,
       );
     }
 
@@ -525,7 +570,7 @@ export class AdminService {
 
     return {
       msg: `${result.affected} utilisateurs supprimés avec succès !`,
-      deleted: result.affected || 0
+      deleted: result.affected || 0,
     };
   }
 }

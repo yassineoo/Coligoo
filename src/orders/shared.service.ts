@@ -68,10 +68,10 @@ export class SharedOrdersService {
       // fromCityId: createOrderDto.fromCityId,
       // toCityId: createOrderDto.toCityId,
       price: finalPrice,
-      weight: createOrderDto.weight,
+      /* weight: createOrderDto.weight,
       height: createOrderDto.height,
       width: createOrderDto.width,
-      length: createOrderDto.length,
+      length: createOrderDto.length,*/
       isStopDesk: createOrderDto.isStopDesk,
       freeShipping: createOrderDto.freeShipping,
       hasExchange: createOrderDto.hasExchange,
@@ -82,7 +82,7 @@ export class SharedOrdersService {
     });
 
     // Handle cities - add this AFTER order creation but BEFORE saving
-    if (createOrderDto.fromCityId) {
+    /* if (createOrderDto.fromCityId) {
       const fromCity = await this.cityRepository.findOne({
         where: { id: createOrderDto.fromCityId },
       });
@@ -93,6 +93,7 @@ export class SharedOrdersService {
       }
       order.fromCity = fromCity;
     }
+      */
 
     if (createOrderDto.toCityId) {
       const toCity = await this.cityRepository.findOne({
@@ -106,12 +107,7 @@ export class SharedOrdersService {
       order.toCity = toCity;
     }
     // Calculate shipping fee based on cities and weight
-    order.shippingFee = await this.calculateShippingFee(
-      createOrderDto.fromCityId,
-      createOrderDto.toCityId,
-      createOrderDto.weight,
-    );
-
+    order.shippingFee = 600; // Default shipping fee
     // Save the order first
     const savedOrder = await this.orderRepository.save(order);
 
@@ -123,7 +119,7 @@ export class SharedOrdersService {
 
     // Create initial tracking entry
     await this.trackingService.addTrackingEntry(savedOrder.id, {
-      status: OrderStatus.PENDING,
+      status: OrderStatus.IN_PREPARATION,
       location: savedOrder.fromCity?.name || 'Unknown Location',
       note: 'Order created and awaiting confirmation',
     });

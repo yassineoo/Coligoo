@@ -55,13 +55,7 @@ export class User {
   createdAt: Date;
 
   @Column({ nullable: true })
-  dob: Date;
-
-  @Column({ nullable: true })
   phoneNumber: string;
-
-  @Column({ type: 'enum', enum: ['homme', 'femme'], nullable: true })
-  sex: string;
 
   @Column({ default: false })
   isEmailVerified: boolean;

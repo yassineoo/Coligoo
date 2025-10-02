@@ -14,7 +14,7 @@ export class StatisticsService {
     });
     //const artisanCount = await userRepository.count({where: {role: Role.ARTISAN}});
     const usersCount = await userRepository.count({
-      where: { role: Not(UserRole.ADMIN), sex: Not(IsNull()) },
+      where: { role: Not(UserRole.ADMIN) },
     });
 
     return {};

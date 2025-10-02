@@ -93,18 +93,6 @@ export class OrdersOperationsService {
       let fromCity = null;
       let toCity = null;
 
-      if (createOrderDto.fromCityId) {
-        fromCity = await this.cityRepository.findOne({
-          where: { id: createOrderDto.fromCityId },
-        });
-
-        if (!fromCity) {
-          throw new BadRequestException(
-            `From city with ID ${createOrderDto.fromCityId} not found`,
-          );
-        }
-      }
-
       if (createOrderDto.toCityId) {
         toCity = await this.cityRepository.findOne({
           where: { id: createOrderDto.toCityId },
@@ -131,10 +119,12 @@ export class OrdersOperationsService {
         toCity,
         price: finalPrice, // Total price of all products
         productList: createOrderDto.productList || null, // Only set if using productList
-        weight: createOrderDto.weight,
+        /*  weight: createOrderDto.weight,
         height: createOrderDto.height,
         width: createOrderDto.width,
         length: createOrderDto.length,
+        */
+        discount: createOrderDto.discount || 0,
         isStopDesk: createOrderDto.isStopDesk,
         freeShipping: createOrderDto.freeShipping,
         hasExchange: createOrderDto.hasExchange,
@@ -144,16 +134,17 @@ export class OrdersOperationsService {
 
       // Only calculate shipping if both cities are provided
       if (fromCity && toCity) {
-        const totalWeight =
+        /*    const totalWeight =
           createOrderDto.weight ||
           (hasOrderItems
             ? this.calculateTotalWeight(createOrderDto.orderItems)
             : this.calculateWeightFromProductList(createOrderDto.productList));
+            */
 
         order.shippingFee = await this.sharedOrder.calculateShippingFee(
-          createOrderDto.fromCityId,
+          1,
           createOrderDto.toCityId,
-          totalWeight,
+          //  totalWeight,
         );
       }
 
@@ -172,7 +163,7 @@ export class OrdersOperationsService {
       // Create initial tracking entry
       try {
         await this.trackingService.addTrackingEntry(savedOrder.id, {
-          status: OrderStatus.PENDING,
+          status: OrderStatus.IN_PREPARATION,
           location: savedOrder.fromCity?.name || 'Warehouse',
           note:
             savedOrder.fromCity && savedOrder.toCity
@@ -230,21 +221,21 @@ export class OrdersOperationsService {
       );
 
       duplicateData = {
-        orderId: '', // Will be generated in the create() method
         firstname: originalOrder.firstname,
         lastName: originalOrder.lastName,
         contactPhone: originalOrder.contactPhone,
         contactPhone2: originalOrder.contactPhone2,
         address: originalOrder.address,
         note: originalOrder.note,
-        fromCityId: originalOrder.fromCity?.id,
+        //   fromCityId: originalOrder.fromCity?.id,
         toCityId: originalOrder.toCity?.id,
         orderItems: orderItems,
         price: originalOrder.price,
-        weight: originalOrder.weight,
+        /*/  weight: originalOrder.weight,
         height: originalOrder.height,
         width: originalOrder.width,
         length: originalOrder.length,
+        */
         isStopDesk: originalOrder.isStopDesk,
         freeShipping: originalOrder.freeShipping,
         hasExchange: originalOrder.hasExchange,
@@ -253,22 +244,22 @@ export class OrdersOperationsService {
     } else {
       // Duplicate with productList
       duplicateData = {
-        orderId: '', // Will be generated in the create() method
         firstname: originalOrder.firstname,
         lastName: originalOrder.lastName,
         contactPhone: originalOrder.contactPhone,
         contactPhone2: originalOrder.contactPhone2,
         address: originalOrder.address,
         note: originalOrder.note,
-        fromCityId: originalOrder.fromCity?.id,
         toCityId: originalOrder.toCity?.id,
         productList: originalOrder.productList,
         orderItems: [], // Empty array to satisfy DTO requirements
         price: originalOrder.price,
-        weight: originalOrder.weight,
+        /*  weight: originalOrder.weight,
         height: originalOrder.height,
         width: originalOrder.width,
         length: originalOrder.length,
+        */
+        discount: originalOrder.discount,
         isStopDesk: originalOrder.isStopDesk,
         freeShipping: originalOrder.freeShipping,
         hasExchange: originalOrder.hasExchange,

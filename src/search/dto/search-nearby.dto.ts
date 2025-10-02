@@ -59,13 +59,6 @@ export class SearchNearbyDto {
   @IsOptional()
   @IsNumberString()
   expYears: number;
-  /*
-  @ApiProperty({ required: false, enum: Sex })
-  @IsOptional()
-  @IsEnum(Sex)
-  sex: Sex;
-
-  */
 
   @ApiProperty({ required: false })
   @IsOptional()

@@ -208,7 +208,9 @@ export class OrdersService {
     if (user.role === UserRole.VENDOR) {
       // Vendors can only update orders that are PENDING or CONFIRMED
       if (
-        ![OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(order.status)
+        ![OrderStatus.IN_PREPARATION, OrderStatus.CONFIRMED].includes(
+          order.status,
+        )
       ) {
         throw new BadRequestException('Cannot update order in current status');
       }
@@ -313,7 +315,7 @@ export class OrdersService {
     order.deliveryman = deliveryman;
 
     // Update status if it's still pending
-    if (order.status === OrderStatus.PENDING) {
+    if (order.status === OrderStatus.IN_PREPARATION) {
       order.status = OrderStatus.CONFIRMED;
     }
 
@@ -357,7 +359,11 @@ export class OrdersService {
   async cancelOrder(id: number, reason: string, user: User): Promise<Order> {
     const order = await this.findOneWithPermission(id, user);
 
-    if (![OrderStatus.PENDING, OrderStatus.CONFIRMED].includes(order.status)) {
+    if (
+      ![OrderStatus.IN_PREPARATION, OrderStatus.CONFIRMED].includes(
+        order.status,
+      )
+    ) {
       throw new BadRequestException('Cannot cancel order in current status');
     }
 
@@ -520,7 +526,7 @@ export class OrdersService {
       throw new NotFoundException('Order not found or not assigned to you');
     }
 
-    if (order.status !== OrderStatus.IN_TRANSIT) {
+    if (order.status !== OrderStatus.OUT_FOR_DELIVERY) {
       throw new BadRequestException(
         'Order must be in transit to upload delivery proof',
       );
@@ -563,7 +569,7 @@ export class OrdersService {
     const undeletable = orders.filter(
       (order) =>
         order.status !== OrderStatus.CANCELLED &&
-        order.status !== OrderStatus.PENDING,
+        order.status !== OrderStatus.IN_PREPARATION,
     );
 
     if (undeletable.length > 0) {
@@ -600,7 +606,7 @@ export class OrdersService {
       baseQuery.getCount(),
       baseQuery
         .clone()
-        .where('order.status = :status', { status: OrderStatus.PENDING })
+        .where('order.status = :status', { status: OrderStatus.IN_PREPARATION })
         .getCount(),
       baseQuery
         .clone()
@@ -635,20 +641,24 @@ export class OrdersService {
     userRole: UserRole,
   ): void {
     const allowedTransitions = {
-      [OrderStatus.PENDING]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
-      [OrderStatus.CONFIRMED]: [OrderStatus.PICKED_UP, OrderStatus.CANCELLED],
-      [OrderStatus.PICKED_UP]: [OrderStatus.IN_TRANSIT, OrderStatus.RETURNED],
-      [OrderStatus.IN_TRANSIT]: [OrderStatus.DELIVERED, OrderStatus.RETURNED],
+      [OrderStatus.IN_PREPARATION]: [
+        OrderStatus.CONFIRMED,
+        OrderStatus.CANCELLED,
+      ],
+      [OrderStatus.CONFIRMED]: [OrderStatus.DELIVERED, OrderStatus.CANCELLED],
+      [OrderStatus.OUT_FOR_DELIVERY]: [
+        OrderStatus.DELIVERED,
+        OrderStatus.RETURNED,
+      ],
       [OrderStatus.DELIVERED]: [], // Final state
       [OrderStatus.CANCELLED]: [], // Final state
-      [OrderStatus.RETURNED]: [OrderStatus.PENDING], // Can be resent
+      [OrderStatus.RETURNED]: [OrderStatus.IN_PREPARATION], // Can be resent
     };
 
     const rolePermissions = {
       [UserRole.ADMIN]: Object.values(OrderStatus),
       [UserRole.DELIVERYMAN]: [
-        OrderStatus.PICKED_UP,
-        OrderStatus.IN_TRANSIT,
+        OrderStatus.OUT_FOR_DELIVERY,
         OrderStatus.DELIVERED,
         OrderStatus.RETURNED,
       ],
@@ -813,16 +823,16 @@ export class OrdersService {
     let daysToAdd = 3; // Default
 
     switch (order.status) {
-      case OrderStatus.PENDING:
+      case OrderStatus.IN_PREPARATION:
         daysToAdd = 5;
         break;
       case OrderStatus.CONFIRMED:
         daysToAdd = 4;
         break;
-      case OrderStatus.PICKED_UP:
+      case OrderStatus.DISPATCHED:
         daysToAdd = 3;
         break;
-      case OrderStatus.IN_TRANSIT:
+      case OrderStatus.OUT_FOR_DELIVERY:
         daysToAdd = 1;
         break;
       case OrderStatus.DELIVERED:
@@ -1014,13 +1024,13 @@ export class OrdersService {
 
       baseQuery
         .clone()
-        .where('order.status = :status', { status: OrderStatus.PENDING })
+        .where('order.status = :status', { status: OrderStatus.IN_PREPARATION })
         .getCount(),
 
       baseQuery
         .clone()
         .where('order.status IN (:...statuses)', {
-          statuses: [OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT],
+          statuses: [OrderStatus.DISPATCHED, OrderStatus.OUT_FOR_DELIVERY],
         })
         .getCount(),
 
@@ -1153,8 +1163,8 @@ export class OrdersService {
         '(order.status = :pending AND order.createdAt < :oneDayAgo) OR ' +
           '(order.status = :inTransit AND order.updatedAt < :threeDaysAgo)',
         {
-          pending: OrderStatus.PENDING,
-          inTransit: OrderStatus.IN_TRANSIT,
+          pending: OrderStatus.IN_PREPARATION,
+          inTransit: OrderStatus.OUT_FOR_DELIVERY,
           oneDayAgo,
           threeDaysAgo,
         },
@@ -1196,7 +1206,7 @@ export class OrdersService {
     if (updateData.price && updateData.price !== order.price) {
       if (
         user.role !== UserRole.ADMIN &&
-        order.status !== OrderStatus.PENDING
+        order.status !== OrderStatus.IN_PREPARATION
       ) {
         errors.push('Price can only be changed for pending orders');
       }

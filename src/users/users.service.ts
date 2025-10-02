@@ -31,11 +31,9 @@ export class UsersService {
     const hashedPassword = createUserDto.password
       ? await Hash.hash(createUserDto.password)
       : null;
-    const dob = createUserDto.dob ? dateCalculator(createUserDto.dob) : null;
     const user = this.usersRepository.create({
       ...createUserDto,
       password: hashedPassword,
-      dob,
     });
     await this.usersRepository.save(user);
     return user;
@@ -59,8 +57,7 @@ export class UsersService {
     });
   }
 
-
-    async findUserByPhone(phone: string, selectPassword: boolean = false) {
+  async findUserByPhone(phone: string, selectPassword: boolean = false) {
     return await this.usersRepository.findOne({
       where: { phoneNumber: phone },
       select: selectPassword
@@ -72,9 +69,7 @@ export class UsersService {
             'nom',
             'prenom',
             'isEmailVerified',
-            'dob',
             'imgUrl',
-            'sex',
             'blocked',
           ]
         : undefined,
@@ -127,8 +122,6 @@ export class UsersService {
         'email',
         'phoneNumber',
         'createdAt',
-        'dob',
-        'sex',
         'blocked',
       ],
       order: {
@@ -165,10 +158,7 @@ export class UsersService {
     }
     user.email = updateUserInfoDto.email || user.email;
     user.phoneNumber = updateUserInfoDto.phoneNumber || user.phoneNumber;
-    user.dob = updateUserInfoDto.dob
-      ? dateCalculator(updateUserInfoDto.dob)
-      : user.dob;
-    user.sex = updateUserInfoDto.sex || user.sex;
+
     user.imgUrl = imgUrl || user.imgUrl;
     await this.usersRepository.save(user);
     return { msg: 'Informations modifiees avec succes !' };
@@ -208,45 +198,45 @@ export class UsersService {
     return { msg: 'Mot de passe modifiee avec succes !' };
   }
 
-async getUserInfo(userId: number) {
-  const user = await this.usersRepository.findOne({
-    where: {
-      id: userId,
-    },
-    relations: ['hubAdmin', 'hubEmployees'], // Add relations if needed
-  });
+  async getUserInfo(userId: number) {
+    const user = await this.usersRepository.findOne({
+      where: {
+        id: userId,
+      },
+      relations: ['hubAdmin', 'hubEmployees'], // Add relations if needed
+    });
 
-  if (!user) {
-    throw new Error('User not found');
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      nom: user.nom,
+      prenom: user.prenom,
+      fullName: user.fullName,
+      role: user.role,
+      permissions: user.permissions,
+      hubId: user.hubId,
+      hubAdmin: user.hubAdmin
+        ? {
+            id: user.hubAdmin.id,
+            nom: user.hubAdmin.nom,
+            prenom: user.hubAdmin.prenom,
+            email: user.hubAdmin.email,
+          }
+        : null,
+      createdAt: user.createdAt,
+      phoneNumber: user.phoneNumber,
+      isEmailVerified: user.isEmailVerified,
+      imgUrl: user.imgUrl,
+      blocked: user.blocked,
+      deviceToken: user.deviceToken,
+      // Optional: include count of hub employees if user is a hub admin
+      hubEmployeesCount: user.hubEmployees?.length ?? 0,
+    };
   }
-
-  return {
-    id: user.id,
-    email: user.email,
-    nom: user.nom,
-    prenom: user.prenom,
-    fullName: user.fullName,
-    role: user.role,
-    permissions: user.permissions,
-    hubId: user.hubId,
-    hubAdmin: user.hubAdmin ? {
-      id: user.hubAdmin.id,
-      nom: user.hubAdmin.nom,
-      prenom: user.hubAdmin.prenom,
-      email: user.hubAdmin.email,
-    } : null,
-    createdAt: user.createdAt,
-    dob: user.dob?.toISOString().split('T')[0] ?? null,
-    phoneNumber: user.phoneNumber,
-    sex: user.sex ?? null,
-    isEmailVerified: user.isEmailVerified,
-    imgUrl: user.imgUrl,
-    blocked: user.blocked,
-    deviceToken: user.deviceToken,
-    // Optional: include count of hub employees if user is a hub admin
-    hubEmployeesCount: user.hubEmployees?.length ?? 0,
-  };
-}
 
   async delete(id: number) {
     const user = await this.usersRepository.findOneBy({ id });

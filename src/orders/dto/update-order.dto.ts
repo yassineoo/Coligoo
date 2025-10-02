@@ -1,11 +1,15 @@
 import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { CreateOrderDto } from './create-order.dto';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 import { OrderStatus } from '../entities/order.entity';
 // dto/bulk-delete-orders.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, ArrayNotEmpty } from 'class-validator';
 export class UpdateOrderDto extends PartialType(CreateOrderDto) {
+  @ApiProperty({ example: 'MySecondOrder' })
+  @IsString()
+  @IsNotEmpty()
+  orderId: string;
   @ApiPropertyOptional({ example: 'Updated order status' })
   @IsString()
   @IsOptional()

@@ -337,8 +337,6 @@ export class AuthService {
         isEmailVerified: user.isEmailVerified,
         phoneNumber: user.phoneNumber ?? null,
         imgUrl: user.imgUrl ?? null,
-        sex: user.sex ?? null,
-        dob: user.dob?.toISOString().split('T')[0] ?? null,
       },
     };
   }

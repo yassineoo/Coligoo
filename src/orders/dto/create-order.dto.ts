@@ -93,11 +93,6 @@ export class ProductListItemDto {
   quantity: number;
 }
 export class CreateOrderDto {
-  @ApiProperty({ example: 'MySecondOrder' })
-  @IsString()
-  @IsNotEmpty()
-  orderId: string;
-
   @ApiProperty({ example: 'رفيدة' })
   @IsString()
   @IsNotEmpty()
@@ -125,11 +120,6 @@ export class CreateOrderDto {
   @ApiProperty({ example: 'he can open it first ' })
   @IsOptional()
   note: string;
-
-  @ApiProperty({ example: 1, description: 'From city ID (wilaya)' })
-  @IsNumber()
-  @IsNotEmpty()
-  fromCityId: number;
 
   @ApiProperty({ example: 2, description: 'To city ID (commune/wilaya)' })
   @IsNumber()
@@ -178,8 +168,17 @@ export class CreateOrderDto {
   @IsPositive()
   price: number;
 
-  // -------- Optional fields --------
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Discount amount in DA',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discount?: number;
 
+  // -------- Optional fields --------
+  /*
   @ApiPropertyOptional({ example: 6 })
   @IsOptional()
   @IsNumber()
@@ -200,6 +199,8 @@ export class CreateOrderDto {
   @IsOptional()
   @IsNumber()
   length?: number;
+
+  */
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()

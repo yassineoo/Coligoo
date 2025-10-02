@@ -29,17 +29,6 @@ export class UpdateUserInfoDto {
   @IsEmail()
   email?: string;
 
-  @ApiProperty({ required: false, enum: ['homme', 'femme'], example: 'homme' })
-  @IsOptional()
-  @IsEnum(Sex)
-  sex?: Sex;
-
-  @ApiProperty({ required: false, example: '12/12/1997' })
-  @IsOptional()
-  @IsString()
-  @Matches(/^([0-9]{2})\/([0-9]{2})\/([0-9]{4})$/)
-  dob?: string;
-
   @ApiProperty({ required: false, example: '0541236987' })
   @IsOptional()
   @IsString()

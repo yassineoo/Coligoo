@@ -24,7 +24,7 @@ export class OrderTracking {
   @Column()
   orderId: number;
 
-  @ApiProperty({ enum: OrderStatus, example: OrderStatus.IN_TRANSIT })
+  @ApiProperty({ enum: OrderStatus, example: OrderStatus.OUT_FOR_DELIVERY })
   @Column({ type: 'enum', enum: OrderStatus })
   status: OrderStatus;
 
