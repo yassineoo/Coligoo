@@ -129,7 +129,7 @@ export class OrdersOperationsService {
         freeShipping: createOrderDto.freeShipping,
         hasExchange: createOrderDto.hasExchange,
         paymentType: createOrderDto.paymentType,
-        shippingFee: null, // Will be calculated when cities are assigned
+        shippingFee: 600, // Will be calculated when cities are assigned
       });
 
       // Only calculate shipping if both cities are provided
