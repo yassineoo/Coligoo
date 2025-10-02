@@ -1,332 +1,343 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Body, 
+  Patch, 
+  Param, 
+  Delete, 
   Query,
   ParseIntPipe,
   HttpStatus,
   HttpCode,
   UseGuards,
-  ParseArrayPipe,
-  UploadedFile,
-  UseInterceptors,
-  BadRequestException,
+  ParseArrayPipe
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiParam,
-  ApiConsumes,
+import { 
+  ApiTags, 
+  ApiOperation, 
+  ApiResponse, 
+  ApiBearerAuth, 
+  ApiParam
 } from '@nestjs/swagger';
-import {
-  CreateTeamMemberDto,
-  UpdateTeamMemberDto,
-  HubEmployeeFilterDto,
-  BulkDeleteEmployeesDto,
-} from './dto/admin.dto';
+import { CreateAdminUserDto, UpdateAdminUserDto, AdminUserFilterDto } from './dto/admin.dto';
 import { User } from './entities/user.entity';
-import { HubAdminService } from './hub-admin.service';
 import { UserRole } from 'src/common/types/roles.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
-import UserPayload from 'src/auth/types/user-payload.interface';
-import { GetCurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { PaginatedResponse } from 'src/common/utils/paginated-response';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { AdminService } from './admin-service';
 
-@ApiTags('Hub Admin - Employee Management')
+@ApiTags('Admin - User Management')
 @ApiBearerAuth()
-@Controller('hub-admin/employees')
-export class HubAdminController {
-  constructor(private readonly hubAdminService: HubAdminService) {}
-
-  // Updated endpoints in hub-admin.controller.ts
+@Controller('admin/users')
+export class AdminController {
+  constructor(private readonly adminService: AdminService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(
-    FileInterceptor('profileImage', {
-      fileFilter: (req, file, cb) => {
-        if (file.originalname.match(/^.*\.(jpg|png|jpeg)$/)) cb(null, true);
-        else {
-          cb(new BadRequestException('File type is not supported'), false);
-        }
-      },
-      limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB
-      },
-    }),
-  )
-  @ApiOperation({ summary: 'Create a new employee (Hub Admin only)' })
+  @ApiOperation({ summary: 'Create a new user (Admin only)' })
   @ApiResponse({
     status: 201,
-    description: 'Employee created successfully',
-    type: User,
+    description: 'User created successfully',
+    type: User
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid input data or email already exists',
+    description: 'Invalid input data or email already exists'
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized',
+    description: 'Unauthorized'
   })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - Hub Admin role required',
+    description: 'Forbidden - Admin role required'
   })
-  async createEmployee(
-    @UploadedFile() profileImage: Express.Multer.File,
-    @Body() createHubEmployeeDto: CreateTeamMemberDto,
-    @GetCurrentUser() currentUser: UserPayload,
-  ): Promise<User> {
-    console.log('profileImage', profileImage);
-
-    if (profileImage) {
-      createHubEmployeeDto.fileName = profileImage.filename;
-    }
-    return await this.hubAdminService.createHubEmployee(
-      createHubEmployeeDto,
-      currentUser.userId,
-    );
+  async createUser(@Body() createAdminUserDto: CreateAdminUserDto): Promise<User> {
+    return await this.adminService.createUser(createAdminUserDto);
   }
 
-  @Patch(':id')
+  @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(
-    FileInterceptor('profileImage', {
-      fileFilter: (req, file, cb) => {
-        if (file.originalname.match(/^.*\.(jpg|png|jpeg)$/)) cb(null, true);
-        else {
-          cb(new BadRequestException('File type is not supported'), false);
-        }
-      },
-      limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB
-      },
-    }),
-  )
-  @ApiOperation({ summary: 'Update an employee' })
-  @ApiParam({ name: 'id', description: 'Employee ID', type: 'number' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all users with filters and pagination' })
   @ApiResponse({
     status: 200,
-    description: 'Employee updated successfully',
-    type: User,
+    description: 'Users retrieved successfully',
+    type: PaginatedResponse<User>
   })
+  async findAllUsers(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+    return await this.adminService.findAllUsers(adminUserFilterDto);
+  }
+
+  @Get('admins')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all admin users' })
   @ApiResponse({
-    status: 400,
-    description: 'Invalid input data',
+    status: 200,
+    description: 'Admin users retrieved successfully',
+    type: PaginatedResponse<User>
+  })
+  async findAllAdmins(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+    return await this.adminService.findAllAdmins(adminUserFilterDto);
+  }
+
+  @Get('hub-admins')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all hub admin users' })
+  @ApiResponse({
+    status: 200,
+    description: 'Hub admin users retrieved successfully',
+    type: PaginatedResponse<User>
+  })
+  async findAllHubAdmins(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+    return await this.adminService.findAllHubAdmins(adminUserFilterDto);
+  }
+
+  @Get('moderators')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all moderator users' })
+  @ApiResponse({
+    status: 200,
+    description: 'Moderator users retrieved successfully',
+    type: PaginatedResponse<User>
+  })
+  async findAllModerators(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+    return await this.adminService.findAllModerators(adminUserFilterDto);
+  }
+
+  @Get('vendors')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all vendor users' })
+  @ApiResponse({
+    status: 200,
+    description: 'Vendor users retrieved successfully',
+    type: PaginatedResponse<User>
+  })
+  async findAllVendors(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+    return await this.adminService.findAllVendors(adminUserFilterDto);
+  }
+
+  @Get('clients')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all client users' })
+  @ApiResponse({
+    status: 200,
+    description: 'Client users retrieved successfully',
+    type: PaginatedResponse<User>
+  })
+  async findAllClients(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+    return await this.adminService.findAllClients(adminUserFilterDto);
+  }
+
+  @Get('deliverymen')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all deliveryman users' })
+  @ApiResponse({
+    status: 200,
+    description: 'Deliveryman users retrieved successfully',
+    type: PaginatedResponse<User>
+  })
+  async findAllDeliverymen(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+    return await this.adminService.findAllDeliverymen(adminUserFilterDto);
+  }
+
+  @Get('hub-employees')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all hub employee users' })
+  @ApiResponse({
+    status: 200,
+    description: 'Hub employee users retrieved successfully',
+    type: PaginatedResponse<User>
+  })
+  async findAllHubEmployees(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+    return await this.adminService.findAllHubEmployees(adminUserFilterDto);
+  }
+
+  @Get('hub/:hubAdminId/employees')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get employees for a specific hub admin' })
+  @ApiParam({ name: 'hubAdminId', description: 'Hub Admin ID', type: 'number' })
+  @ApiResponse({
+    status: 200,
+    description: 'Hub employees retrieved successfully',
+    type: PaginatedResponse<User>
   })
   @ApiResponse({
     status: 404,
-    description: 'Employee not found or access denied',
+    description: 'Hub admin not found'
   })
-  async updateEmployee(
-    @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() profileImage: Express.Multer.File,
-    @Body() updateHubEmployeeDto: UpdateTeamMemberDto,
-    @GetCurrentUser() currentUser: UserPayload,
-  ): Promise<User> {
-    if (profileImage) {
-      updateHubEmployeeDto.fileName = profileImage.filename;
-    }
-    return await this.hubAdminService.updateEmployee(
-      id,
-      currentUser.userId,
-      updateHubEmployeeDto,
-    );
-  }
-  @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
-  @ApiOperation({ summary: 'Get all my employees with filters and pagination' })
-  @ApiResponse({
-    status: 200,
-    description: 'Employees retrieved successfully',
-    type: PaginatedResponse<User>,
-  })
-  async findMyEmployees(
-    @Query() hubEmployeeFilterDto: HubEmployeeFilterDto,
-    @GetCurrentUser() currentUser: UserPayload,
+  async getHubEmployees(
+    @Param('hubAdminId', ParseIntPipe) hubAdminId: number,
+    @Query() adminUserFilterDto: AdminUserFilterDto
   ): Promise<PaginatedResponse<User>> {
-    return await this.hubAdminService.findMyEmployees(
-      currentUser.userId,
-      hubEmployeeFilterDto,
-    );
+    return await this.adminService.getHubEmployees(hubAdminId, adminUserFilterDto);
   }
 
   @Get('statistics')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
-  @ApiOperation({ summary: 'Get my employee statistics' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get system-wide user statistics' })
   @ApiResponse({
     status: 200,
-    description: 'Employee statistics retrieved successfully',
+    description: 'User statistics retrieved successfully'
   })
-  async getMyEmployeeStatistics(
-    @GetCurrentUser() currentUser: UserPayload,
-  ): Promise<{
-    totalEmployees: number;
-    activeEmployees: number;
-    blockedEmployees: number;
-    verifiedEmployees: number;
+  async getUserStatistics(): Promise<{
+    total: number;
+    admins: number;
+    hubAdmins: number;
+    moderators: number;
+    vendors: number;
+    clients: number;
+    deliverymen: number;
+    hubEmployees: number;
+    blocked: number;
+    verified: number;
   }> {
-    return await this.hubAdminService.getMyEmployeeStatistics(
-      currentUser.userId,
-    );
-  }
-
-  @Get('profile')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
-  @ApiOperation({ summary: 'Get my hub admin profile' })
-  @ApiResponse({
-    status: 200,
-    description: 'Profile retrieved successfully',
-    type: User,
-  })
-  async getMyProfile(
-    @GetCurrentUser() currentUser: UserPayload,
-  ): Promise<User> {
-    return await this.hubAdminService.getHubAdminProfile(currentUser.userId);
+    return await this.adminService.getUserStatistics();
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
-  @ApiOperation({ summary: 'Get an employee by ID' })
-  @ApiParam({ name: 'id', description: 'Employee ID', type: 'number' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get a user by ID' })
+  @ApiParam({ name: 'id', description: 'User ID', type: 'number' })
   @ApiResponse({
     status: 200,
-    description: 'Employee found',
-    type: User,
+    description: 'User found',
+    type: User
   })
   @ApiResponse({
     status: 404,
-    description: 'Employee not found or access denied',
+    description: 'User not found'
   })
-  async findEmployeeById(
+  async findUserById(@Param('id', ParseIntPipe) id: number): Promise<User> {
+    return await this.adminService.findUserById(id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update a user' })
+  @ApiParam({ name: 'id', description: 'User ID', type: 'number' })
+  @ApiResponse({
+    status: 200,
+    description: 'User updated successfully',
+    type: User
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data'
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User not found'
+  })
+  async updateUser(
     @Param('id', ParseIntPipe) id: number,
-    @GetCurrentUser() currentUser: UserPayload,
+    @Body() updateAdminUserDto: UpdateAdminUserDto
   ): Promise<User> {
-    return await this.hubAdminService.findEmployeeById(id, currentUser.userId);
+    return await this.adminService.updateUser(id, updateAdminUserDto);
   }
 
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
-  @ApiOperation({ summary: 'Update employee status (block/unblock)' })
-  @ApiParam({ name: 'id', description: 'Employee ID', type: 'number' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update user status (block/unblock)' })
+  @ApiParam({ name: 'id', description: 'User ID', type: 'number' })
   @ApiResponse({
     status: 200,
-    description: 'Employee status updated successfully',
+    description: 'User status updated successfully'
   })
-  async updateEmployeeStatus(
+  async updateUserStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Body('blocked') blocked: boolean,
-    @GetCurrentUser() currentUser: UserPayload,
+    @Body('blocked') blocked: boolean
   ): Promise<{ msg: string }> {
-    return await this.hubAdminService.updateEmployeeStatus(
-      id,
-      currentUser.userId,
-      blocked,
-    );
+    return await this.adminService.updateUserStatus(id, blocked);
   }
 
   @Patch(':id/permissions')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
-  @ApiOperation({ summary: 'Update employee permissions' })
-  @ApiParam({ name: 'id', description: 'Employee ID', type: 'number' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update user permissions' })
+  @ApiParam({ name: 'id', description: 'User ID', type: 'number' })
   @ApiResponse({
     status: 200,
-    description: 'Employee permissions updated successfully',
-    type: User,
+    description: 'User permissions updated successfully',
+    type: User
   })
-  async updateEmployeePermissions(
+  async updateUserPermissions(
     @Param('id', ParseIntPipe) id: number,
-    @Body('permissions', new ParseArrayPipe({ items: String }))
-    permissions: string[],
-    @GetCurrentUser() currentUser: UserPayload,
+    @Body('permissions', new ParseArrayPipe({ items: String })) permissions: string[]
   ): Promise<User> {
-    return await this.hubAdminService.updateEmployeePermissions(
-      id,
-      currentUser.userId,
-      permissions,
-    );
+    return await this.adminService.updateUserPermissions(id, permissions);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete an employee' })
-  @ApiParam({ name: 'id', description: 'Employee ID', type: 'number' })
+  @ApiOperation({ summary: 'Delete a user' })
+  @ApiParam({ name: 'id', description: 'User ID', type: 'number' })
   @ApiResponse({
     status: 200,
-    description: 'Employee deleted successfully',
+    description: 'User deleted successfully'
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot delete hub admin with employees'
   })
   @ApiResponse({
     status: 404,
-    description: 'Employee not found or access denied',
+    description: 'User not found'
   })
-  async deleteEmployee(
-    @Param('id', ParseIntPipe) id: number,
-    @GetCurrentUser() currentUser: UserPayload,
-  ): Promise<{ msg: string }> {
-    return await this.hubAdminService.deleteEmployee(id, currentUser.userId);
+  async deleteUser(@Param('id', ParseIntPipe) id: number): Promise<{ msg: string }> {
+    return await this.adminService.deleteUser(id);
   }
 
   @Patch('bulk/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
-  @ApiOperation({ summary: 'Bulk update employee status' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Bulk update user status' })
   @ApiResponse({
     status: 200,
-    description: 'Employees status updated successfully',
+    description: 'Users status updated successfully'
   })
-  async bulkUpdateEmployeeStatus(
-    @Body('employeeIds', new ParseArrayPipe({ items: Number }))
-    employeeIds: number[],
-    @Body('blocked') blocked: boolean,
-    @GetCurrentUser() currentUser: UserPayload,
+  async bulkUpdateUserStatus(
+    @Body('userIds', new ParseArrayPipe({ items: Number })) userIds: number[],
+    @Body('blocked') blocked: boolean
   ): Promise<{ msg: string; updated: number }> {
-    return await this.hubAdminService.bulkUpdateEmployeeStatus(
-      employeeIds,
-      currentUser.userId,
-      blocked,
-    );
+    return await this.adminService.bulkUpdateUserStatus(userIds, blocked);
   }
 
   @Delete('bulk/delete')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.HUB_ADMIN)
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Bulk delete employees' })
+  @ApiOperation({ summary: 'Bulk delete users' })
   @ApiResponse({
     status: 200,
-    description: 'Employees deleted successfully',
+    description: 'Users deleted successfully'
   })
-  async bulkDeleteEmployees(
-    @Body() body: BulkDeleteEmployeesDto,
-    @GetCurrentUser() currentUser: UserPayload,
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot delete hub admins with employees'
+  })
+  async bulkDeleteUsers(
+    @Body('userIds', new ParseArrayPipe({ items: Number })) userIds: number[]
   ): Promise<{ msg: string; deleted: number }> {
-    const { employeeIds } = body;
-    return await this.hubAdminService.bulkDeleteEmployees(
-      employeeIds,
-      currentUser.userId,
-    );
+    return await this.adminService.bulkDeleteUsers(userIds);
   }
 }

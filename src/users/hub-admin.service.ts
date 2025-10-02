@@ -115,6 +115,8 @@ export class HubAdminService {
       }
     }
 
+    let imgUrl = '';
+
     // Handle profile image update
     if (updateHubEmployeeDto.fileName) {
       // Delete old image if exists
@@ -138,7 +140,7 @@ export class HubAdminService {
       }
 
       // Set new image URL
-      updateHubEmployeeDto.imgUrl = `${this.appConfig.getAppUrl()}/api/v1/images/profile-images/${
+      imgUrl = `${this.appConfig.getAppUrl()}/api/v1/images/profile-images/${
         updateHubEmployeeDto.fileName
       }`;
     }
@@ -151,6 +153,10 @@ export class HubAdminService {
     }
 
     Object.assign(employee, updateHubEmployeeDto);
+
+    if (imgUrl) {
+      employee.imgUrl = imgUrl;
+    }
 
     return await this.usersRepository.save(employee);
   }

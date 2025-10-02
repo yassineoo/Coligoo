@@ -10,7 +10,7 @@ import {
   IsNumber,
   ArrayNotEmpty,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { UserRole } from 'src/common/types/roles.enum';
 
@@ -72,14 +72,6 @@ export class CreateTeamMemberDto {
   role: UserRole;
 
   @ApiPropertyOptional({
-    description: 'Profile image URL',
-    example: 'https://example.com/photo.jpg',
-  })
-  @IsOptional()
-  @IsString()
-  imgUrl?: string;
-
-  @ApiPropertyOptional({
     description: 'Team member permissions',
     type: [String],
     example: [
@@ -94,6 +86,14 @@ export class CreateTeamMemberDto {
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [value];
+    } catch {
+      return [value]; // fallback for single string input
+    }
+  })
   permissions?: string[];
 
   fileName: string;
