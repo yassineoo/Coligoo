@@ -269,7 +269,14 @@ export class OrdersController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.VENDOR, UserRole.DELIVERYMAN)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.DELIVERYMAN,
+    UserRole.VENDOR,
+    UserRole.HUB_ADMIN,
+    UserRole.HUB_EMPLOYEE,
+    UserRole.MODERATOR,
+  )
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
   @ApiResponse({ status: 200, description: 'Order found', type: Order })
@@ -346,7 +353,14 @@ export class OrdersController {
   }
   @Patch(':id/assign-deliveryman')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.DELIVERYMAN,
+    UserRole.VENDOR,
+    UserRole.HUB_ADMIN,
+    UserRole.HUB_EMPLOYEE,
+    UserRole.MODERATOR,
+  )
   @ApiOperation({ summary: 'Assign or reassign deliveryman to order' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
   @ApiResponse({
@@ -363,7 +377,14 @@ export class OrdersController {
 
   @Post('bulk-update')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.DELIVERYMAN,
+    UserRole.VENDOR,
+    UserRole.HUB_ADMIN,
+    UserRole.HUB_EMPLOYEE,
+    UserRole.MODERATOR,
+  )
   @ApiOperation({ summary: 'Bulk update multiple orders' })
   @ApiResponse({
     status: 200,
