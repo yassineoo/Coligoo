@@ -21,6 +21,8 @@ export class ImagesController {
     return this.imagesService.getProfileImage(filename, res);
   }
 
+  // endpoint for blob image profile
+
   @Get('/id-card-image/:filename')
   @UseGuards(JwtAuthGuard, RolesGuard, BlockedUserGuard)
   @Roles(UserRole.ADMIN)

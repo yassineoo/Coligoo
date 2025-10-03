@@ -14,6 +14,15 @@ export class WilayaController {
     return await this.wilayaService.getAll();
   }
 
+  @Get('/:code/shipping-fees')
+  async getWilayaWithShippingFees(@Param('code') code: string) {
+    return await this.wilayaService.getWilayaWithShippingFees(code);
+  }
+  @Get('/shipping-fees')
+  async getWilayaWithShippingFeesCode() {
+    return await this.wilayaService.getAllWilayasWithShippingFees();
+  }
+
   @Get('/:code/cities')
   async getWilayaCities(@Param('code') code: string) {
     return await this.wilayaService.getWilayaCities(code);

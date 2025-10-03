@@ -252,6 +252,7 @@ export class HubAdminService {
         'nom',
         'prenom',
         'fullName',
+        'address',
         'role',
         'permissions',
         'createdAt',
@@ -261,6 +262,7 @@ export class HubAdminService {
         'blocked',
         'hubId',
       ],
+      relations: ['city', 'city.wilaya'],
     });
 
     if (!employee) {

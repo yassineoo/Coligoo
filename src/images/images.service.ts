@@ -14,6 +14,9 @@ export class ImagesService {
   getProfileImage(filename: string, res: Response) {
     return res.sendFile(filename, { root: 'uploads/profile-images' });
   }
+  getProfileImageBlob(filename: string, res: Response) {
+    return res.sendFile(filename, { root: 'uploads/profile-images' });
+  }
 
   async getIdCardImage(filename: string, res: Response, userId: number) {
     const user = await this.userRepository.findOneBy({ id: userId });
