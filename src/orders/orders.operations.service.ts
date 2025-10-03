@@ -90,7 +90,9 @@ export class OrdersOperationsService {
       }
 
       // Handle optional cities - only fetch if IDs are provided
-      let fromCity = null;
+      let fromCity = await this.cityRepository.findOne({
+        where: { id: 556 },
+      });
       let toCity = null;
 
       if (createOrderDto.toCityId) {
