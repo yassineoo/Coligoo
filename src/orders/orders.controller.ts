@@ -74,7 +74,13 @@ export class OrdersController {
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.VENDOR, UserRole.DELIVERYMAN)
+  @Roles(
+    UserRole.VENDOR,
+    UserRole.ADMIN,
+    UserRole.HUB_ADMIN,
+    UserRole.HUB_EMPLOYEE,
+    UserRole.MODERATOR,
+  )
   @ApiOperation({ summary: 'Get all orders with filters and pagination' })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
