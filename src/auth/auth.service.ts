@@ -76,6 +76,7 @@ export class AuthService {
       throw new BadRequestException({
         fr: 'Email ou mot de passe incorrect',
         ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+        en: 'Email or password is incorrect',
       });
     }
 
@@ -88,6 +89,7 @@ export class AuthService {
       throw new BadRequestException({
         fr: 'Email ou mot de passe incorrect',
         ar: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+        en: 'Email or password is incorrect',
       });
     }
 
@@ -95,6 +97,7 @@ export class AuthService {
       throw new BadRequestException({
         fr: 'Votre compte a été bloqué !',
         ar: 'تم حظر حسابك',
+        en: 'Your account has been blocked!',
       });
     }
 
@@ -346,6 +349,7 @@ export class AuthService {
       throw new BadRequestException({
         fr: 'Aucun utilisateur trouvé avec cet email',
         ar: 'لم يتم العثور على أي مستخدم بهذا البريد الإلكتروني',
+        en: 'No user found with this email address',
       });
     }
     const code = await this.otpService.createOtp(user.email, otpType);
@@ -354,7 +358,13 @@ export class AuthService {
       code.toString(),
       otpType,
     );
-    return { msg: 'Email de vérification envoyé' };
+    return {
+      msg: {
+        fr: 'Email de vérification envoyé',
+        ar: 'تم إرسال البريد الإلكتروني للتحقق',
+        en: 'Verification email sent',
+      },
+    };
   }
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
     const user = await this.usersService.findUserByEmail(
@@ -364,6 +374,7 @@ export class AuthService {
       throw new BadRequestException({
         fr: 'Aucun utilisateur trouvé avec cet email',
         ar: 'لم يتم العثور على أي مستخدم بهذا البريد الإلكتروني',
+        en: 'No user found with this email address',
       });
     }
     const isCodeValid = await this.otpService.verifyOtp(
@@ -374,6 +385,7 @@ export class AuthService {
     if (!isCodeValid) {
       throw new BadRequestException({
         fr: 'Code invalide',
+        en: 'invalide Code ',
         ar: 'رمز غير صالح',
       });
     }
@@ -426,6 +438,7 @@ export class AuthService {
       throw new BadRequestException({
         fr: 'Aucun utilisateur trouvé avec cet email',
         ar: 'لم يتم العثور على أي مستخدم بهذا البريد الإلكتروني',
+        en: 'No user found with this email address',
       });
     }
 
@@ -455,6 +468,7 @@ export class AuthService {
       msg: {
         fr: 'Un lien de réinitialisation de mot de passe a été envoyé à votre email',
         ar: 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني',
+        en: 'A password reset link has been sent to your email',
       },
       success: true,
     };
@@ -472,6 +486,7 @@ export class AuthService {
         throw new BadRequestException({
           fr: 'Token invalide',
           ar: 'رمز غير صالح',
+          en: 'Invalid Token',
         });
       }
 
@@ -481,6 +496,7 @@ export class AuthService {
         throw new BadRequestException({
           fr: 'Token invalide',
           ar: 'رمز غير صالح',
+          en: 'Invalid Token',
         });
       }
 
@@ -489,6 +505,7 @@ export class AuthService {
         msg: {
           fr: 'Token valide',
           ar: 'رمز صالح',
+          en: 'valid Token',
         },
         userEmail: payload.email,
       };
@@ -496,6 +513,7 @@ export class AuthService {
       // Token is invalid or expired
       throw new BadRequestException({
         fr: 'Token invalide ou expiré',
+        en: 'Invalide  Token or expired',
         ar: 'رمز غير صالح أو منتهي الصلاحية',
       });
     }
@@ -515,6 +533,7 @@ export class AuthService {
         throw new BadRequestException({
           fr: 'Token invalide',
           ar: 'رمز غير صالح',
+          en: 'Invalid Token',
         });
       }
 
@@ -524,6 +543,7 @@ export class AuthService {
         throw new BadRequestException({
           fr: 'Token invalide',
           ar: 'رمز غير صالح',
+          en: 'Invalid Token',
         });
       }
 
@@ -545,6 +565,7 @@ export class AuthService {
         msg: {
           fr: 'Mot de passe réinitialisé avec succès',
           ar: 'تم إعادة تعيين كلمة المرور بنجاح',
+          en: 'Password reset successfully',
         },
         success: true,
       };
@@ -556,6 +577,8 @@ export class AuthService {
       // Token is invalid or expired
       throw new BadRequestException({
         fr: 'Token invalide ou expiré',
+        en: 'Invalide  Token or expired',
+
         ar: 'رمز غير صالح أو منتهي الصلاحية',
       });
     }
