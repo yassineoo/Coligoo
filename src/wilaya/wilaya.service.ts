@@ -62,7 +62,6 @@ export class WilayaService {
     const wilayas = await wilayaRepository
       .createQueryBuilder('wilaya')
       .leftJoinAndSelect('wilaya.shippingFeesFrom', 'feesFrom')
-      .leftJoinAndSelect('wilaya.shippingFeesTo', 'feesTo')
       .orderBy('wilaya.code', 'ASC')
       .getMany();
 
