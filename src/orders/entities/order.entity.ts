@@ -1,3 +1,8 @@
+// ===========================
+// 1. ORDER ENTITY (FIXED)
+// ===========================
+// src/orders/entities/order.entity.ts
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -13,35 +18,16 @@ import { User } from 'src/users/entities/user.entity';
 import { OrderItem } from './order-items';
 
 export enum OrderStatus {
-  // Vendor only - Preparing the order
   IN_PREPARATION = 'in_preparation',
-
-  // Vendor ready to ship - Hub and Admin can now see it
-  //  READY_TO_SHIP = 'pret_a_expedier',
-
   CONFIRMED = 'confirmed',
-
   DEPOSITED_AT_HUB = 'deposited_at_hub',
-
   CANCELLED = 'cancelled',
-
-  // In transit between hubs
   DISPATCHED = 'dispatched',
-
-  // Arrived at destination hub
   COLLECTED = 'collected',
-
-  // Deliveryman has the package
   OUT_FOR_DELIVERY = 'out_for_delivery',
-
-  // Successfully delivered to client
   DELIVERED = 'delivered',
-
-  // Return flow
   RETURNED = 'returned',
   RETURNED_TO_HUB = 'returned_to_hub',
-
-  // Payment status
   PAID = 'paid',
 }
 
@@ -102,15 +88,22 @@ export class Order {
   @Column()
   address: string;
 
-  @ApiProperty({ description: 'Sender city (wilaya)', example: 'Batna' })
-  @ManyToOne(() => City, { eager: true })
+  // FIXED: Use lazy type function for Swagger
+  @ApiProperty({
+    description: 'Sender city (wilaya)',
+    type: () => City, // Lazy function prevents circular dependency
+  })
+  @ManyToOne(() => City, (city) => city.ordersFrom, {
+    eager: true,
+    nullable: false,
+  })
   fromCity: City;
 
   @ApiProperty({
     description: 'Receiver city (commune/wilaya)',
-    example: 'Ouled Fayet - Alger',
+    type: () => City, // Lazy function prevents circular dependency
   })
-  @ManyToOne(() => City, { eager: true })
+  @ManyToOne(() => City, (city) => city.ordersTo, { eager: true })
   toCity: City;
 
   @ApiProperty({ example: 'he can open it first ' })
@@ -245,10 +238,10 @@ export class Order {
   @Column({ default: 0 })
   deliveryAttempts: number;
 
-  // NEW: Replace productList with orderItems relationship
+  // FIXED: Use lazy type function for Swagger
   @ApiProperty({
     description: 'Products in this order',
-    type: () => [OrderItem],
+    type: () => [OrderItem], // Lazy function
   })
   @OneToMany(() => OrderItem, (orderItem) => orderItem.order, {
     cascade: true,
@@ -271,12 +264,10 @@ export class Order {
     return this.orderItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
   }
 
-  // Helper method to check if order is visible to hub/admin
   get isVisibleToHub(): boolean {
     return this.status !== OrderStatus.IN_PREPARATION;
   }
 
-  // Helper method to check if barcode can be printed
   get canPrintBarcode(): boolean {
     return [OrderStatus.IN_PREPARATION, OrderStatus.CONFIRMED].includes(
       this.status,

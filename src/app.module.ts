@@ -15,6 +15,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { SeederService } from './seeder/seeder.service';
 import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
+import { ShippingModule } from './shipping/shipping.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ProductsModule } from './products/products.module';
     SearchModule,
     OrdersModule,
     ProductsModule,
+    ShippingModule,
   ],
   controllers: [],
   providers: [AppService, SeederService],

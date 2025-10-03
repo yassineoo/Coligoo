@@ -17,19 +17,18 @@ export class OrderItem {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ApiProperty({ description: 'Reference to the order' })
-  @ManyToOne(() => Order, (order) => order.orderItems, { 
-    onDelete: 'CASCADE' 
-  })
-  @JoinColumn({ name: 'order_id' })
+  // CRITICAL FIX: Hide this from Swagger to break the circular dependency
+  @ManyToOne(() => Order, (order) => order.orderItems, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'orderId' })
   order: Order;
 
-  @Column({ name: 'order_id' })
+  @ApiProperty({ example: 1, description: 'Order ID' })
+  @Column()
   orderId: number;
 
   @ApiProperty({ description: 'Reference to the product' })
-  @ManyToOne(() => Product, (product) => product.orderItems, { 
-    eager: true 
+  @ManyToOne(() => Product, (product) => product.orderItems, {
+    eager: true,
   })
   @JoinColumn({ name: 'product_id' })
   product: Product;
@@ -37,27 +36,31 @@ export class OrderItem {
   @Column({ name: 'product_id' })
   productId: number;
 
-  @ApiProperty({ example: 2, description: 'Quantity of this product in the order' })
+  @ApiProperty({
+    example: 2,
+    description: 'Quantity of this product in the order',
+  })
   @Column('int', { default: 1 })
   quantity: number;
 
-  @ApiProperty({ 
-    example: 1200.50, 
-    description: 'Price of the product at the time of order (for historical tracking)' 
+  @ApiProperty({
+    example: 1200.5,
+    description:
+      'Price of the product at the time of order (for historical tracking)',
   })
   @Column('decimal', { precision: 10, scale: 2 })
   unitPrice: number;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     example: 'Size: L, Color: Red',
-    description: 'Product variations/options selected for this order item' 
+    description: 'Product variations/options selected for this order item',
   })
   @Column('text', { nullable: true })
   productVariations: string;
 
-  @ApiPropertyOptional({ 
+  @ApiPropertyOptional({
     example: 'Handle with care',
-    description: 'Special notes for this specific product' 
+    description: 'Special notes for this specific product',
   })
   @Column('text', { nullable: true })
   notes: string;

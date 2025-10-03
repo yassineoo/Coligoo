@@ -10,6 +10,7 @@ import { OrderTracking } from 'src/orders/entities/order-tracking.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrderTrackingService } from 'src/orders/tracking.service';
 import { Product } from 'src/products/entities/product.entity';
+import { ShippingFee } from 'src/shipping/entities/shipping.entity';
 import { User } from 'src/users/entities/user.entity';
 import { City } from 'src/wilaya/entities/city.entity';
 import { Wilaya } from 'src/wilaya/entities/wilaya.entity';
@@ -40,6 +41,7 @@ import { Or } from 'typeorm';
           OrderTracking,
           Product,
           OrderItem,
+          ShippingFee,
         ],
       }),
       inject: [DatabaseConfig],

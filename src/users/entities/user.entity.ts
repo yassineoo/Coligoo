@@ -1,5 +1,7 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from 'src/common/types/roles.enum';
 import { Notification } from 'src/notification/entities/notification.entity';
+import { City } from 'src/wilaya/entities/city.entity';
 import {
   Column,
   CreateDateColumn,
@@ -74,4 +76,21 @@ export class User {
 
   @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Notification[];
+
+  // Add this property in your User entity class
+  // Modify the city relationship in your User entity
+
+  // Inside your User class, add:
+  @ApiPropertyOptional({
+    description: "User's city/location",
+    type: () => City, // Lazy function
+  })
+  @ManyToOne(() => City, (city) => city.users, {
+    nullable: true,
+    eager: true,
+  })
+  city: City;
+
+  @Column({ type: 'int', nullable: true, default: 556 })
+  cityId: number;
 }
