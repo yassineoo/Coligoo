@@ -106,7 +106,7 @@ export class HubAdminController {
   @Roles(UserRole.HUB_ADMIN)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
-    FileInterceptor('profileImage', {
+    FileInterceptor('imgUrl', {
       fileFilter: (req, file, cb) => {
         if (file.originalname.match(/^.*\.(jpg|png|jpeg)$/)) cb(null, true);
         else {
