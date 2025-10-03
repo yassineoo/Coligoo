@@ -71,6 +71,15 @@ export class CreateTeamMemberDto {
   @IsEnum(UserRole)
   role: UserRole;
 
+  @ApiProperty({
+    description: 'City ID where the team member is located',
+    example: 556,
+  })
+  @IsNumber()
+  @IsNotEmpty()
+  @Type(() => Number) // 👈 This ensures it's converted from string to number
+  cityId: number;
+
   @ApiPropertyOptional({
     description: 'Team member permissions',
     type: [String],

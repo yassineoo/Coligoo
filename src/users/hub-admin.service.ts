@@ -482,6 +482,7 @@ export class HubAdminService {
         'nom',
         'prenom',
         'fullName',
+
         'role',
         'permissions',
         'createdAt',
@@ -489,6 +490,7 @@ export class HubAdminService {
         'isEmailVerified',
         'imgUrl',
       ],
+      relations: ['city', 'city.wilaya'],
     });
 
     if (!hubAdmin) {

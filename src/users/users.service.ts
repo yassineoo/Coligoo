@@ -203,7 +203,7 @@ export class UsersService {
       where: {
         id: userId,
       },
-      relations: ['hubAdmin', 'hubEmployees'], // Add relations if needed
+      relations: ['hubAdmin', 'hubEmployees', 'city', 'city.wilaya'], // Add relations if needed
     });
 
     if (!user) {
@@ -216,6 +216,9 @@ export class UsersService {
       nom: user.nom,
       prenom: user.prenom,
       fullName: user.fullName,
+      address: user.address,
+
+      city: user.city,
       role: user.role,
       permissions: user.permissions,
       hubId: user.hubId,
