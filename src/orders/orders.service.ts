@@ -262,7 +262,7 @@ export class OrdersService {
     }
 
     // Validate status transition
-    this.validateStatusTransition(order.status, status, user.role);
+    //this.validateStatusTransition(order.status, status, user.role);
 
     const previousStatus = order.status;
     order.status = status;

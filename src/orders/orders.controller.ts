@@ -12,6 +12,7 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  ParseEnumPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,6 +21,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
   ApiParam,
+  ApiBody,
 } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -303,7 +305,6 @@ export class OrdersController {
       req.user,
     );
   }
-
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(
@@ -316,6 +317,21 @@ export class OrdersController {
   )
   @ApiOperation({ summary: 'Update order status' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
+  @ApiBody({
+    description: 'Order status update',
+    schema: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: Object.values(OrderStatus),
+          example: OrderStatus.CONFIRMED,
+          description: 'New status for the order',
+        },
+      },
+      required: ['status'],
+    },
+  })
   @ApiResponse({
     status: 200,
     description: 'Order status updated successfully',
@@ -323,12 +339,11 @@ export class OrdersController {
   })
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Body('status') status: OrderStatus,
+    @Body('status', new ParseEnumPipe(OrderStatus)) status: OrderStatus, // Add validation pipe
     @Request() req: any,
   ): Promise<Order> {
     return this.ordersService.updateOrderStatus(id, status, req.user);
   }
-
   @Patch(':id/assign-deliveryman')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
