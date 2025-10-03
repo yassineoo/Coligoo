@@ -172,7 +172,7 @@ export class HubEmployeeFilterDto {
   @ApiPropertyOptional({
     description: 'Order by field',
     example: 'createdAt',
-    enum: ['createdAt', 'nom', 'prenom', 'email'],
+    enum: ['createdAt', 'nom', 'prenom', 'email', 'fullName'],
   })
   @IsOptional()
   @IsString()
