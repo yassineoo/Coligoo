@@ -206,17 +206,26 @@ export class SharedOrdersService {
   // Private helper methods
 
   async generateOrderId(): Promise<string> {
-    const year = new Date().getFullYear();
-    const count = await this.orderRepository.count({
-      where: {
-        createdAt: Between(
-          new Date(`${year}-01-01`),
-          new Date(`${year}-12-31`),
-        ),
-      },
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+
+    // Generate 8-character ID (e.g., ZRKHG321A)
+    for (let i = 0; i < 8; i++) {
+      const randomIndex = Math.floor(Math.random() * characters.length);
+      result += characters[randomIndex];
+    }
+
+    // Check for uniqueness
+    const existingOrder = await this.orderRepository.findOne({
+      where: { orderId: result },
     });
 
-    return `ORD-${year}-${String(count + 1).padStart(6, '0')}`;
+    // Regenerate if collision occurs (very rare with 8 chars)
+    if (existingOrder) {
+      return this.generateOrderId();
+    }
+
+    return result;
   }
 
   async calculateShippingFee(
