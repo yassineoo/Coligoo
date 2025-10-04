@@ -175,10 +175,9 @@ export class OrdersService {
       .leftJoinAndSelect('order.sender', 'sender')
       .leftJoinAndSelect('order.deliveryman', 'deliveryman')
       .leftJoinAndSelect('order.fromCity', 'fromCity')
-      .leftJoinAndSelect('fromCity.wilaya', 'fromWilaya') // Join wilaya for fromCity
+      .leftJoinAndSelect('fromCity.wilaya', 'fromWilaya')
       .leftJoinAndSelect('order.toCity', 'toCity')
-      .leftJoinAndSelect('toCity.wilaya', 'toWilaya') // Join wilaya for toCity
-
+      .leftJoinAndSelect('toCity.wilaya', 'toWilaya')
       .where('order.id = :id', { id });
 
     // Apply role-based access control
@@ -195,6 +194,25 @@ export class OrdersService {
     if (!order) {
       throw new NotFoundException(`Order #${id} not found or access denied`);
     }
+
+    // Convert decimal string fields to numbers
+    return this.convertDecimalFieldsToNumbers(order);
+  }
+
+  private convertDecimalFieldsToNumbers(order: Order): Order {
+    // List of decimal fields that come as strings from the database
+    const decimalFields = [
+      'price',
+      'discount',
+      'shippingFee',
+      // Add any other decimal fields here
+    ];
+
+    decimalFields.forEach((field) => {
+      if (order[field] !== null && order[field] !== undefined) {
+        order[field] = parseFloat(order[field]);
+      }
+    });
 
     return order;
   }
