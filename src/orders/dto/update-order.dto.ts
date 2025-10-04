@@ -6,10 +6,6 @@ import { OrderStatus } from '../entities/order.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, ArrayNotEmpty } from 'class-validator';
 export class UpdateOrderDto extends PartialType(CreateOrderDto) {
-  @ApiProperty({ example: 'MySecondOrder' })
-  @IsString()
-  @IsNotEmpty()
-  orderId: string;
   @ApiPropertyOptional({ example: 'Updated order status' })
   @IsString()
   @IsOptional()
