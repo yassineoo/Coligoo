@@ -53,8 +53,9 @@ export class OrdersService {
       .leftJoinAndSelect('order.sender', 'sender')
       .leftJoinAndSelect('order.deliveryman', 'deliveryman')
       .leftJoinAndSelect('order.fromCity', 'fromCity')
-      .leftJoinAndSelect('order.toCity', 'toCity');
-
+      .leftJoinAndSelect('fromCity.wilaya', 'fromWilaya') // Join wilaya for fromCity
+      .leftJoinAndSelect('order.toCity', 'toCity')
+      .leftJoinAndSelect('toCity.wilaya', 'toWilaya'); // Join wilaya for toCity
     // Apply role-based filtering
     if (user.role === UserRole.VENDOR) {
       query = query.where('order.senderId = :userId', { userId: user.id });
@@ -174,8 +175,9 @@ export class OrdersService {
       .leftJoinAndSelect('order.sender', 'sender')
       .leftJoinAndSelect('order.deliveryman', 'deliveryman')
       .leftJoinAndSelect('order.fromCity', 'fromCity')
+      .leftJoinAndSelect('fromCity.wilaya', 'fromWilaya') // Join wilaya for fromCity
       .leftJoinAndSelect('order.toCity', 'toCity')
-      .leftJoinAndSelect('order.orderItems', 'orderItems')
+      .leftJoinAndSelect('toCity.wilaya', 'toWilaya') // Join wilaya for toCity
 
       .where('order.id = :id', { id });
 

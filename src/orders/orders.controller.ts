@@ -297,7 +297,14 @@ export class OrdersController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.VENDOR, UserRole.DELIVERYMAN)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.DELIVERYMAN,
+    UserRole.VENDOR,
+    UserRole.HUB_ADMIN,
+    UserRole.HUB_EMPLOYEE,
+    UserRole.MODERATOR,
+  )
   @ApiOperation({ summary: 'Update an order' })
   @ApiParam({ name: 'id', type: 'number', example: 1 })
   @ApiResponse({
