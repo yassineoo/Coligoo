@@ -85,10 +85,14 @@ export class ShippingService {
 
   async findAll(query: QueryShippingFeeDto): Promise<{
     data: ShippingFee[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
+    meta: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
   }> {
     const where: any = {};
 
@@ -108,12 +112,18 @@ export class ShippingService {
       take: limit,
     });
 
+    const totalPages = Math.ceil(total / limit);
+
     return {
       data,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
     };
   }
   async findOne(id: number): Promise<ShippingFee> {
