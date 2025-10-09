@@ -6,7 +6,10 @@ export class UpdateShippingFeeDto extends PartialType(CreateShippingFeeDto) {}
 // src/shipping/dto/query-shipping-fee.dto.ts
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsBoolean, IsOptional } from 'class-validator';
-import { Transform } from 'class-transformer';
+// src/shipping/dto/set-all-prices.dto.ts
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNumber, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 export class QueryShippingFeeDto {
   @ApiPropertyOptional({ example: '16', description: 'Filter by from wilaya' })
@@ -24,11 +27,28 @@ export class QueryShippingFeeDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
-}
+  @ApiPropertyOptional({
+    description: 'Page number for pagination',
+    example: 1,
+    minimum: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
 
-// src/shipping/dto/set-all-prices.dto.ts
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, Min } from 'class-validator';
+  @ApiPropertyOptional({
+    description: 'Items per page',
+    example: 10,
+    minimum: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  limit?: number = 10;
+}
 
 export class SetAllPricesDto {
   @ApiProperty({ example: 400 })

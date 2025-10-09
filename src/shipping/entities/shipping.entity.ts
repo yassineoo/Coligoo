@@ -13,9 +13,11 @@ import {
   UpdateDateColumn,
   Unique,
   Index,
+  OneToMany,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Wilaya } from 'src/wilaya/entities/wilaya.entity';
+import { ShippingZone } from './shipping-zone.entity';
 
 @Entity('shipping_fees')
 export class ShippingFee {
@@ -55,6 +57,13 @@ export class ShippingFee {
   @ApiProperty({ example: 500, description: 'Return shipping price' })
   @Column('decimal', { precision: 10, scale: 2, default: 300 })
   returnPrice: number;
+
+  @ApiProperty({
+    description: 'Delivery zones for this route',
+    type: () => [ShippingZone],
+  })
+  @OneToMany(() => ShippingZone, (zone) => zone.shippingFee)
+  zones: ShippingZone[];
 
   @ApiProperty({ example: true })
   @Column({ default: true })

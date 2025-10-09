@@ -17,13 +17,13 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { ShippingService } from './shipping.service';
 import { CreateShippingFeeDto } from './dto/create-shipping.dto';
 import {
   QueryShippingFeeDto,
   SetAllPricesDto,
   UpdateShippingFeeDto,
 } from './dto/update-shipping.dto';
+import { ShippingService } from './shipping.service';
 
 // ===========================
 // 4. CONTROLLER
@@ -63,15 +63,20 @@ export class ShippingController {
     return this.service.setWilayaPrices(code, dto);
   }
 
+  // ===========================
+  // CONTROLLER - Update findAll in shipping.controller.ts
+  // ===========================
+
   @Get()
-  @ApiOperation({ summary: 'Get all shipping fees' })
-  @ApiQuery({ name: 'fromWilayaCode', required: false })
-  @ApiQuery({ name: 'toWilayaCode', required: false })
-  @ApiQuery({ name: 'isActive', required: false })
+  @ApiOperation({ summary: 'Get all shipping fees (paginated)' })
+  @ApiQuery({ name: 'fromWilayaCode', required: false, example: '16' })
+  @ApiQuery({ name: 'toWilayaCode', required: false, example: '31' })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   findAll(@Query() query: QueryShippingFeeDto) {
     return this.service.findAll(query);
   }
-
   @Get('route/:from/:to')
   @ApiOperation({ summary: 'Get shipping fee for specific route' })
   @ApiParam({ name: 'from', example: '16' })
@@ -110,5 +115,25 @@ export class ShippingController {
   @ApiParam({ name: 'id', example: 1 })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.service.remove(id);
+  }
+
+  // ===========================
+  // CONTROLLER - Add to shipping.controller.ts
+  // ===========================
+
+  @Post('zones/generate/:from/:to')
+  @ApiOperation({
+    summary: 'Auto-generate 3 random zones for a route',
+    description:
+      'Automatically splits destination wilaya communes into 3 random zones with progressive pricing (base, +17%, +33%)',
+  })
+  @ApiParam({ name: 'from', example: '16', description: 'From wilaya code' })
+  @ApiParam({
+    name: 'to',
+    example: '09',
+    description: 'To wilaya code (e.g., Blida)',
+  })
+  generateRandomZones(@Param('from') from: string, @Param('to') to: string) {
+    return this.service.generateRandomZones(from, to);
   }
 }
