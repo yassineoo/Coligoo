@@ -1,15 +1,63 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateShippingFeeDto } from './create-shipping.dto';
-
-export class UpdateShippingFeeDto extends PartialType(CreateShippingFeeDto) {}
-
-// src/shipping/dto/query-shipping-fee.dto.ts
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsBoolean, IsOptional } from 'class-validator';
+// src/shipping/dto/query-shipping-fee.dto.ts
+import {
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsArray,
+  ValidateNested,
+  ArrayMinSize,
+} from 'class-validator';
 // src/shipping/dto/set-all-prices.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNumber, Min } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
+
+export class UpdateZoneInShippingDto {
+  @ApiProperty({
+    example: 1,
+    required: false,
+    description: 'Zone ID (for existing zones)',
+  })
+  @IsNumber()
+  @IsOptional()
+  id?: number;
+
+  @ApiProperty({ example: 'Zone Centre', description: 'Zone name' })
+  @IsString()
+  name: string;
+
+  @ApiProperty({ example: 600, description: 'Zone price' })
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @ApiProperty({ example: [1, 2, 3], description: 'Array of city IDs' })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsNumber({}, { each: true })
+  cityIds: number[];
+
+  @ApiProperty({ example: true, required: false })
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+}
+
+export class UpdateShippingFeeDto extends PartialType(CreateShippingFeeDto) {
+  @ApiProperty({
+    type: [UpdateZoneInShippingDto],
+    required: false,
+    description: 'Array of zones to update/create',
+  })
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateZoneInShippingDto)
+  zones?: UpdateZoneInShippingDto[];
+}
 
 export class QueryShippingFeeDto {
   @ApiPropertyOptional({ example: '16', description: 'Filter by from wilaya' })

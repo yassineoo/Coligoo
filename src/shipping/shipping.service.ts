@@ -150,10 +150,136 @@ export class ShippingService {
     return fee;
   }
 
+  // Add these methods to your ShippingService class
+
+  /**
+   * Update shipping fee with optional zones update
+   */
   async update(id: number, dto: UpdateShippingFeeDto): Promise<ShippingFee> {
     const fee = await this.findOne(id);
-    Object.assign(fee, dto);
-    return this.shippingFeeRepo.save(fee);
+
+    // Update basic shipping fee fields
+    if (dto.desktopPrice !== undefined) fee.desktopPrice = dto.desktopPrice;
+    if (dto.homePrice !== undefined) fee.homePrice = dto.homePrice;
+    if (dto.returnPrice !== undefined) fee.returnPrice = dto.returnPrice;
+    if (dto.isActive !== undefined) fee.isActive = dto.isActive;
+
+    // Save the shipping fee first
+    const updatedFee = await this.shippingFeeRepo.save(fee);
+
+    // Handle zones if provided
+    if (dto.zones && dto.zones.length > 0) {
+      // Collect all city IDs to check for duplicates
+      const allCityIds = dto.zones.flatMap((z) => z.cityIds);
+      const uniqueCityIds = [...new Set(allCityIds)];
+
+      if (allCityIds.length !== uniqueCityIds.length) {
+        throw new BadRequestException('Duplicate city IDs found across zones');
+      }
+
+      // Verify all cities exist
+      const cities = await this.cityRepo.findBy({ id: In(uniqueCityIds) });
+      if (cities.length !== uniqueCityIds.length) {
+        throw new BadRequestException('Some city IDs are invalid');
+      }
+
+      // Get existing zones for this shipping fee
+      const existingZones = await this.zoneRepo.find({
+        where: { shippingFeeId: id },
+        relations: ['cities'],
+      });
+
+      const existingZoneIds = new Set(existingZones.map((z) => z.id));
+      const updatedZoneIds = new Set(
+        dto.zones.filter((z) => z.id).map((z) => z.id),
+      );
+
+      // Delete zones that are not in the update list
+      const zonesToDelete = existingZones.filter(
+        (zone) => !updatedZoneIds.has(zone.id),
+      );
+      if (zonesToDelete.length > 0) {
+        await this.zoneRepo.remove(zonesToDelete);
+      }
+
+      // Process each zone in the DTO
+      for (const zoneDto of dto.zones) {
+        const zoneCities = cities.filter((city) =>
+          zoneDto.cityIds.includes(city.id),
+        );
+
+        if (zoneDto.id && existingZoneIds.has(zoneDto.id)) {
+          // Update existing zone
+          const zone = existingZones.find((z) => z.id === zoneDto.id);
+          if (zone) {
+            zone.name = zoneDto.name;
+            zone.price = zoneDto.price;
+            zone.cities = zoneCities;
+            zone.isActive = zoneDto.isActive ?? zone.isActive;
+            await this.zoneRepo.save(zone);
+          }
+        } else {
+          // Create new zone
+          const newZone = this.zoneRepo.create({
+            name: zoneDto.name,
+            price: zoneDto.price,
+            shippingFeeId: id,
+            cities: zoneCities,
+            isActive: zoneDto.isActive ?? true,
+          });
+          await this.zoneRepo.save(newZone);
+        }
+      }
+    }
+
+    // Return the updated fee with zones
+    return this.findOne(id);
+  }
+
+  /**
+   * Update a single zone by ID
+   */
+  async updateZoneById(
+    zoneId: number,
+    dto: UpdateShippingZoneDto,
+  ): Promise<ShippingZone> {
+    const zone = await this.findOneZone(zoneId);
+
+    // Update basic fields
+    if (dto.name) zone.name = dto.name;
+    if (dto.price !== undefined) zone.price = dto.price;
+    if (dto.isActive !== undefined) zone.isActive = dto.isActive;
+
+    // Update cities if provided
+    if (dto.cityIds) {
+      const cities = await this.cityRepo.findBy({ id: In(dto.cityIds) });
+      if (cities.length !== dto.cityIds.length) {
+        throw new BadRequestException('Some city IDs are invalid');
+      }
+
+      // Check for conflicts with other zones in the same shipping fee
+      const otherZones = await this.zoneRepo.find({
+        where: { shippingFeeId: zone.shippingFeeId },
+        relations: ['cities'],
+      });
+
+      const usedCityIds = new Set(
+        otherZones
+          .filter((z) => z.id !== zoneId)
+          .flatMap((z) => z.cities.map((city) => city.id)),
+      );
+
+      const duplicates = dto.cityIds.filter((id) => usedCityIds.has(id));
+      if (duplicates.length > 0) {
+        throw new ConflictException(
+          `Cities ${duplicates.join(', ')} are already in another zone`,
+        );
+      }
+
+      zone.cities = cities;
+    }
+
+    return this.zoneRepo.save(zone);
   }
 
   async remove(id: number): Promise<void> {
