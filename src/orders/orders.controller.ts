@@ -38,6 +38,7 @@ import {
   PaginatedResult,
 } from './dto/dto';
 import { OrdersOperationsService } from './orders.operations.service';
+import { HubStatsFilterDto, HubStatsResponseDto } from './dto/stats-filter';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -112,6 +113,99 @@ export class OrdersController {
     required: false,
     type: String,
     example: 'createdAt',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['ASC', 'DESC'],
+    example: 'DESC',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of orders',
+    schema: {
+      type: 'object',
+      properties: {
+        data: { type: 'array', items: { $ref: '#/components/schemas/Order' } },
+        meta: {
+          type: 'object',
+          properties: {
+            total: { type: 'number' },
+            page: { type: 'number' },
+            lastPage: { type: 'number' },
+            limit: { type: 'number' },
+          },
+        },
+      },
+    },
+  })
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(
+    UserRole.VENDOR,
+    UserRole.ADMIN,
+    UserRole.HUB_ADMIN,
+    UserRole.HUB_EMPLOYEE,
+    UserRole.MODERATOR,
+  )
+  @ApiOperation({ summary: 'Get all orders with filters and pagination' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'status', required: false, enum: OrderStatus })
+  @ApiQuery({ name: 'fromCityId', required: false, type: Number })
+  @ApiQuery({ name: 'toCityId', required: false, type: Number })
+  @ApiQuery({
+    name: 'fromWilayaCode',
+    required: false,
+    type: String,
+    example: '16',
+    description: 'Filter by source wilaya code',
+  })
+  @ApiQuery({
+    name: 'toWilayaCode',
+    required: false,
+    type: String,
+    example: '31',
+    description: 'Filter by destination wilaya code',
+  })
+  @ApiQuery({ name: 'vendorId', required: false, type: Number })
+  @ApiQuery({ name: 'deliverymanId', required: false, type: Number })
+  @ApiQuery({
+    name: 'dateFrom',
+    required: false,
+    type: String,
+    example: '2025-01-01',
+  })
+  @ApiQuery({
+    name: 'dateTo',
+    required: false,
+    type: String,
+    example: '2025-12-31',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search in order ID, customer name, phone',
+  })
+  @ApiQuery({
+    name: 'isStopDesk',
+    required: false,
+    type: Boolean,
+    description: 'Filter by stop desk (pickup at hub)',
+  })
+  @ApiQuery({
+    name: 'hasExchange',
+    required: false,
+    type: Boolean,
+    description: 'Filter orders with exchange',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    example: 'createdAt',
+    enum: ['createdAt', 'updatedAt', 'status', 'price', 'orderId', 'wilaya'],
   })
   @ApiQuery({
     name: 'sortOrder',
@@ -506,5 +600,69 @@ export class OrdersController {
     @Request() req: any,
   ) {
     return this.ordersService.uploadDeliveryProof(id, proofData, req.user);
+  }
+
+  // Add this to your orders.controller.ts
+
+  @Get('statistics/hub')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(
+    UserRole.ADMIN,
+    UserRole.HUB_ADMIN,
+    UserRole.HUB_EMPLOYEE,
+    UserRole.MODERATOR,
+    UserRole.VENDOR,
+  )
+  @ApiOperation({
+    summary: 'Get hub statistics',
+    description:
+      'Get order statistics including total, pending, deferred, delivered, and returned orders',
+  })
+  @ApiQuery({
+    name: 'dateFrom',
+    required: false,
+    type: String,
+    example: '2025-01-01',
+    description: 'Start date for statistics (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'dateTo',
+    required: false,
+    type: String,
+    example: '2025-12-31',
+    description: 'End date for statistics (YYYY-MM-DD)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Hub statistics retrieved successfully',
+    type: HubStatsResponseDto,
+    schema: {
+      example: {
+        totalOrders: 250,
+        pending: 45,
+        deferred: 30,
+        delivered: 150,
+        returned: 25,
+        percentages: {
+          pending: 18.0,
+          deferred: 12.0,
+          delivered: 60.0,
+          returned: 10.0,
+        },
+        dateFrom: '2025-01-01',
+        dateTo: '2025-12-31',
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Insufficient permissions',
+  })
+  getHubStatistics(
+    @Query() filterDto: HubStatsFilterDto,
+    @Request() req: any,
+  ): Promise<HubStatsResponseDto> {
+    return this.ordersService.getHubStatistics(filterDto, req.user);
   }
 }

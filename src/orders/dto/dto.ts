@@ -9,6 +9,7 @@ import {
   Max,
   IsArray,
   ValidateNested,
+  IsBoolean,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -35,47 +36,99 @@ export class OrderFilterDto {
   @IsEnum(OrderStatus)
   status?: OrderStatus;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional({ example: 1, description: 'Filter by from city ID' })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   fromCityId?: number;
 
-  @ApiPropertyOptional({ example: 2 })
+  @ApiPropertyOptional({ example: 2, description: 'Filter by to city ID' })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   toCityId?: number;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional({
+    example: '16',
+    description: 'Filter by source wilaya code',
+  })
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value?.trim())
+  fromWilayaCode?: string;
+
+  @ApiPropertyOptional({
+    example: '31',
+    description: 'Filter by destination wilaya code',
+  })
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) => value?.trim())
+  toWilayaCode?: string;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Filter by vendor/sender ID',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   vendorId?: number;
 
-  @ApiPropertyOptional({ example: 1 })
+  @ApiPropertyOptional({ example: 1, description: 'Filter by deliveryman ID' })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   deliverymanId?: number;
 
-  @ApiPropertyOptional({ example: '2025-01-01' })
+  @ApiPropertyOptional({
+    example: '2025-01-01',
+    description: 'Start date filter',
+  })
   @IsOptional()
   @IsDateString()
   dateFrom?: string;
 
-  @ApiPropertyOptional({ example: '2025-12-31' })
+  @ApiPropertyOptional({
+    example: '2025-12-31',
+    description: 'End date filter',
+  })
   @IsOptional()
   @IsDateString()
   dateTo?: string;
 
-  @ApiPropertyOptional({ example: 'search term' })
+  @ApiPropertyOptional({
+    example: 'search term',
+    description: 'Search in order ID, customer name, phone',
+  })
   @IsOptional()
   @IsString()
   @Transform(({ value }) => value?.trim())
   search?: string;
 
-  @ApiPropertyOptional({ example: 'createdAt' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter by stop desk (pickup at hub)',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  isStopDesk?: boolean;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Filter orders with exchange',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  hasExchange?: boolean;
+
+  @ApiPropertyOptional({
+    example: 'createdAt',
+    description: 'Field to sort by',
+    enum: ['createdAt', 'updatedAt', 'status', 'price', 'orderId', 'wilaya'],
+  })
   @IsOptional()
   @IsString()
   sortBy?: string = 'createdAt';

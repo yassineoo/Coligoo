@@ -16,6 +16,7 @@ import { SeederService } from './seeder/seeder.service';
 import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
 import { ShippingModule } from './shipping/shipping.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ShippingModule } from './shipping/shipping.module';
     OrdersModule,
     ProductsModule,
     ShippingModule,
+    SettingsModule,
   ],
   controllers: [],
   providers: [AppService, SeederService],

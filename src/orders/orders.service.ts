@@ -15,6 +15,7 @@ import { BulkUpdateOrderDto, OrderFilterDto, PaginatedResult } from './dto/dto';
 import { UserRole } from 'src/common/types/roles.enum';
 import { OrderItem } from './entities/order-items';
 import { SharedOrdersService } from './shared.service';
+import { HubStatsFilterDto, HubStatsResponseDto } from './dto/stats-filter';
 
 @Injectable()
 export class OrdersService {
@@ -39,11 +40,15 @@ export class OrdersService {
       status,
       fromCityId,
       toCityId,
+      fromWilayaCode,
+      toWilayaCode,
       vendorId,
       deliverymanId,
       dateFrom,
       dateTo,
       search,
+      isStopDesk,
+      hasExchange,
       sortBy = 'createdAt',
       sortOrder = 'DESC',
     } = filterDto;
@@ -53,9 +58,11 @@ export class OrdersService {
       .leftJoinAndSelect('order.sender', 'sender')
       .leftJoinAndSelect('order.deliveryman', 'deliveryman')
       .leftJoinAndSelect('order.fromCity', 'fromCity')
-      .leftJoinAndSelect('fromCity.wilaya', 'fromWilaya') // Join wilaya for fromCity
+      .leftJoinAndSelect('fromCity.wilaya', 'fromWilaya')
       .leftJoinAndSelect('order.toCity', 'toCity')
-      .leftJoinAndSelect('toCity.wilaya', 'toWilaya'); // Join wilaya for toCity
+      .leftJoinAndSelect('toCity.wilaya', 'toWilaya')
+      .leftJoinAndSelect('order.orderItems', 'orderItems');
+
     // Apply role-based filtering
     if (user.role === UserRole.VENDOR) {
       query = query.where('order.senderId = :userId', { userId: user.id });
@@ -76,6 +83,32 @@ export class OrdersService {
       query = query.andWhere('order.toCityId = :toCityId', { toCityId });
     }
 
+    // NEW: Filter by fromWilaya code
+    if (fromWilayaCode) {
+      query = query.andWhere('fromWilaya.code = :fromWilayaCode', {
+        fromWilayaCode,
+      });
+    }
+
+    // NEW: Filter by toWilaya code
+    if (toWilayaCode) {
+      query = query.andWhere('toWilaya.code = :toWilayaCode', {
+        toWilayaCode,
+      });
+    }
+
+    // NEW: Filter by isStopDesk
+    if (isStopDesk !== undefined) {
+      query = query.andWhere('order.isStopDesk = :isStopDesk', { isStopDesk });
+    }
+
+    // NEW: Filter by hasExchange
+    if (hasExchange !== undefined) {
+      query = query.andWhere('order.hasExchange = :hasExchange', {
+        hasExchange,
+      });
+    }
+
     if (vendorId && user.role === UserRole.ADMIN) {
       query = query.andWhere('order.senderId = :vendorId', { vendorId });
     }
@@ -93,7 +126,7 @@ export class OrdersService {
       });
     }
 
-    // Fix: Replace ILIKE with LIKE for MySQL/MariaDB compatibility
+    // Search functionality
     if (search) {
       query = query.andWhere(
         '(order.orderId LIKE :search OR order.firstname LIKE :search OR order.lastName LIKE :search OR order.contactPhone LIKE :search)',
@@ -108,15 +141,27 @@ export class OrdersService {
       'status',
       'price',
       'orderId',
+      'wilaya', // NEW: sorting by wilaya
     ];
+
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
     const sortDirection = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
-    query = query.orderBy(`order.${sortField}`, sortDirection);
+    // Handle special case for wilaya sorting
+    if (sortField === 'wilaya') {
+      query = query.orderBy('toWilaya.name', sortDirection);
+    } else {
+      query = query.orderBy(`order.${sortField}`, sortDirection);
+    }
+
+    // Add secondary sort by createdAt for consistent ordering
+    if (sortField !== 'createdAt') {
+      query = query.addOrderBy('order.createdAt', 'DESC');
+    }
 
     // Apply pagination with validation
     const validatedPage = Math.max(1, page);
-    const validatedLimit = Math.min(Math.max(1, limit), 100); // Cap at 100 items per page
+    const validatedLimit = Math.min(Math.max(1, limit), 100);
     const offset = (validatedPage - 1) * validatedLimit;
 
     query = query.skip(offset).take(validatedLimit);
@@ -139,6 +184,7 @@ export class OrdersService {
       );
     }
   }
+
   async findVendorOrders(
     vendorId: number,
     filterDto: OrderFilterDto,
@@ -1336,5 +1382,117 @@ export class OrdersService {
     // This would fetch a saved order template and create a new order
     // For now, we'll just return a placeholder
     throw new BadRequestException('Order templates not implemented yet');
+  }
+
+  // Add this to your orders.service.ts
+
+  async getHubStatistics(
+    filterDto: HubStatsFilterDto,
+    user: User,
+  ): Promise<HubStatsResponseDto> {
+    const { dateFrom, dateTo } = filterDto;
+
+    // Base query builder
+    let query = this.orderRepository.createQueryBuilder('order');
+
+    // Apply role-based filtering
+    if (
+      user.role === UserRole.HUB_ADMIN ||
+      user.role === UserRole.HUB_EMPLOYEE
+    ) {
+      // Hub users should only see orders that are visible to hub
+      query = query.where('order.status != :inPreparation', {
+        inPreparation: OrderStatus.IN_PREPARATION,
+      });
+    } else if (user.role === UserRole.VENDOR) {
+      // Vendors see only their orders
+      query = query.where('order.senderId = :userId', { userId: user.id });
+    } else if (user.role === UserRole.DELIVERYMAN) {
+      // Deliverymen see only assigned orders
+      query = query.where('order.deliverymanId = :userId', { userId: user.id });
+    }
+    // Admins and moderators see all orders (no additional filter)
+
+    // Apply date filters if provided
+    if (dateFrom && dateTo) {
+      query = query.andWhere('order.createdAt BETWEEN :dateFrom AND :dateTo', {
+        dateFrom,
+        dateTo,
+      });
+    } else if (dateFrom) {
+      query = query.andWhere('order.createdAt >= :dateFrom', { dateFrom });
+    } else if (dateTo) {
+      query = query.andWhere('order.createdAt <= :dateTo', { dateTo });
+    }
+
+    try {
+      // Get all orders matching the criteria
+      const orders = await query.getMany();
+
+      // Calculate statistics
+      const totalOrders = orders.length;
+
+      // Pending statuses
+      const pendingStatuses = [
+        OrderStatus.IN_PREPARATION,
+        OrderStatus.CONFIRMED,
+        OrderStatus.DEPOSITED_AT_HUB,
+      ];
+      const pending = orders.filter((order) =>
+        pendingStatuses.includes(order.status),
+      ).length;
+
+      // Deferred statuses (in transit)
+      const deferredStatuses = [
+        OrderStatus.DISPATCHED,
+        OrderStatus.COLLECTED,
+        OrderStatus.OUT_FOR_DELIVERY,
+      ];
+      const deferred = orders.filter((order) =>
+        deferredStatuses.includes(order.status),
+      ).length;
+
+      // Delivered
+      const delivered = orders.filter(
+        (order) => order.status === OrderStatus.DELIVERED,
+      ).length;
+
+      // Returned statuses
+      const returnedStatuses = [
+        OrderStatus.RETURNED,
+        OrderStatus.RETURNED_TO_HUB,
+      ];
+      const returned = orders.filter((order) =>
+        returnedStatuses.includes(order.status),
+      ).length;
+
+      // Calculate percentages
+      const percentages = {
+        pending: totalOrders > 0 ? (pending / totalOrders) * 100 : 0,
+        deferred: totalOrders > 0 ? (deferred / totalOrders) * 100 : 0,
+        delivered: totalOrders > 0 ? (delivered / totalOrders) * 100 : 0,
+        returned: totalOrders > 0 ? (returned / totalOrders) * 100 : 0,
+      };
+
+      // Round percentages to 2 decimal places
+      Object.keys(percentages).forEach((key) => {
+        percentages[key] = Math.round(percentages[key] * 100) / 100;
+      });
+
+      return {
+        totalOrders,
+        pending,
+        deferred,
+        delivered,
+        returned,
+        percentages,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+      };
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to retrieve hub statistics: ${error.message}`,
+      );
+    }
   }
 }
