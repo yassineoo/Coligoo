@@ -16,6 +16,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { City } from 'src/wilaya/entities/city.entity';
 import { User } from 'src/users/entities/user.entity';
 import { OrderItem } from './order-items';
+import { WithdrawalRequest } from 'src/fincance/entities/fincance.entity';
 
 export enum OrderStatus {
   IN_PREPARATION = 'in_preparation',
@@ -248,6 +249,18 @@ export class Order {
     eager: true,
   })
   orderItems: OrderItem[];
+
+  // Add this property to Order entity
+  @ApiPropertyOptional({
+    description: 'Withdrawal request this order belongs to',
+  })
+  @ManyToOne(() => WithdrawalRequest, (request) => request.orders, {
+    nullable: true,
+  })
+  withdrawalRequest: WithdrawalRequest;
+
+  @Column({ nullable: true })
+  withdrawalRequestId: number;
 
   // Computed properties
   get totalProductsPrice(): number {

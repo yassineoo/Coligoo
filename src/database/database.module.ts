@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Otp } from 'src/auth/entities/otp.entity';
 import { EnvConfigModule } from 'src/config/config.module';
 import { DatabaseConfig } from 'src/config/database.config';
+import { WithdrawalRequest } from 'src/fincance/entities/fincance.entity';
 import { AdminNotification } from 'src/notification/entities/admin-notification.entity';
 import { Notification } from 'src/notification/entities/notification.entity';
 import { OrderItem } from 'src/orders/entities/order-items';
@@ -45,6 +46,7 @@ import { Wilaya } from 'src/wilaya/entities/wilaya.entity';
           ShippingFee,
           ShippingZone,
           Setting,
+          WithdrawalRequest,
         ],
       }),
       inject: [DatabaseConfig],

@@ -17,6 +17,7 @@ import { OrdersModule } from './orders/orders.module';
 import { ProductsModule } from './products/products.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { SettingsModule } from './settings/settings.module';
+import { FincanceModule } from './fincance/fincance.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { SettingsModule } from './settings/settings.module';
     ProductsModule,
     ShippingModule,
     SettingsModule,
+    FincanceModule,
   ],
   controllers: [],
   providers: [AppService, SeederService],
