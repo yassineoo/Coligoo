@@ -18,6 +18,7 @@ import { ProductsModule } from './products/products.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { SettingsModule } from './settings/settings.module';
 import { FincanceModule } from './fincance/fincance.module';
+import { LockersModule } from './lockers/lockers.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { FincanceModule } from './fincance/fincance.module';
     ShippingModule,
     SettingsModule,
     FincanceModule,
+    LockersModule,
   ],
   controllers: [],
   providers: [AppService, SeederService],
