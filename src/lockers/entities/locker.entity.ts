@@ -100,10 +100,12 @@ export class Locker {
   @ApiProperty({ example: true, description: 'Whether locker is active' })
   @Column({ default: true })
   isActive: boolean;
-
+  /*
   @ApiProperty({ example: '0123456789', description: 'Support contact phone' })
   @Column({ nullable: true })
   contactPhone: string;
+
+  */
 
   @ApiProperty({ example: '2025-01-15T10:00:00Z' })
   @CreateDateColumn()

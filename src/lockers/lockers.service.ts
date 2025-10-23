@@ -6,7 +6,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Locker, ClosetStatus, Closet } from './entities/locker.entity';
+import {
+  Locker,
+  ClosetStatus,
+  Closet,
+  OperatingHours,
+} from './entities/locker.entity';
 import { City } from 'src/wilaya/entities/city.entity';
 import { CreateLockerDto } from './dto/create-locker.dto';
 import { LockerFilterDto } from './dto/filter.dto';
@@ -27,16 +32,22 @@ export class LockersService {
   /**
    * Generate default operating hours (08:00 - 22:00 for all days)
    */
-  private getDefaultOperatingHours() {
-    const defaultHours = { open: '08:00', close: '22:00' };
+  private getDefaultOperatingHours(): OperatingHours {
+    const workingDay = {
+      isOpen: true,
+      open: '08:00',
+      close: '22:00',
+    };
+    const dayOff = { isOpen: false, open: null, close: null };
+
     return {
-      monday: defaultHours,
-      tuesday: defaultHours,
-      wednesday: defaultHours,
-      thursday: defaultHours,
-      friday: defaultHours,
-      saturday: defaultHours,
-      sunday: defaultHours,
+      monday: workingDay,
+      tuesday: workingDay,
+      wednesday: workingDay,
+      thursday: workingDay,
+      friday: dayOff, // Friday is off by default
+      saturday: workingDay,
+      sunday: workingDay,
     };
   }
 
@@ -98,7 +109,6 @@ export class LockersService {
       closets: this.initializeClosets(dto.capacity),
       operatingHours: dto.operatingHours || this.getDefaultOperatingHours(),
       isActive: dto.isActive ?? true,
-      contactPhone: dto.contactPhone,
     });
 
     // Save to get the ID

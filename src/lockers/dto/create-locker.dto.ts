@@ -51,9 +51,10 @@ export class CreateLockerDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-
+  /*
   @ApiPropertyOptional({ example: '0123456789' })
   @IsOptional()
   @IsString()
   contactPhone?: string;
+  */
 }
