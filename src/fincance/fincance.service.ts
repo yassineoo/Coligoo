@@ -184,7 +184,7 @@ export class FinanceService {
 
     if (search) {
       query = query.andWhere(
-        '(request.trackingCode LIKE :search OR vendor.firstname LIKE :search OR vendor.lastName LIKE :search)',
+        '(request.trackingCode LIKE :search OR vendor.nom LIKE :search OR vendor.prenom LIKE :search)',
         { search: `%${search}%` },
       );
     }
