@@ -35,8 +35,15 @@ export class OrdersOperationsService {
     private readonly trackingService: OrderTrackingService,
   ) {}
 
-  async create(createOrderDto: CreateOrderDto, user: User): Promise<Order> {
+  async create(createOrderDto: CreateOrderDto, user: number): Promise<Order> {
     try {
+      const userEntity = await this.userRepository.findOne({
+        where: { id: user },
+      });
+      if (!userEntity) {
+        throw new NotFoundException(`User with ID ${user} not found`);
+      }
+
       // Validate that either orderItems or productList is provided (but not both or neither)
       const hasOrderItems =
         createOrderDto.orderItems && createOrderDto.orderItems.length > 0;
@@ -110,7 +117,7 @@ export class OrdersOperationsService {
       // Create the main order
       const order = this.orderRepository.create({
         orderId,
-        sender: user,
+        sender: userEntity,
         firstname: createOrderDto.firstname,
         lastName: createOrderDto.lastName,
         contactPhone: createOrderDto.contactPhone,
@@ -195,11 +202,11 @@ export class OrdersOperationsService {
     }
   }
 
-  async duplicateOrder(orderId: number, user: User): Promise<Order> {
+  async duplicateOrder(orderId: number, userId: number): Promise<Order> {
     // Find original order with order items included
     const originalOrder = await this.findOneWithPermissionAndItems(
       orderId,
-      user,
+      userId,
     );
 
     // Check if original order has orderItems or productList
@@ -269,7 +276,7 @@ export class OrdersOperationsService {
       };
     }
 
-    return this.create(duplicateData, user);
+    return this.create(duplicateData, userId);
   }
 
   /**
@@ -277,10 +284,10 @@ export class OrdersOperationsService {
    */
   private async findOneWithPermissionAndItems(
     orderId: number,
-    user: User,
+    userId: number,
   ): Promise<Order> {
     const order = await this.orderRepository.findOne({
-      where: { id: orderId, sender: { id: user.id } },
+      where: { id: orderId, sender: { id: userId } },
       relations: ['sender', 'fromCity', 'toCity', 'orderItems'],
     });
 

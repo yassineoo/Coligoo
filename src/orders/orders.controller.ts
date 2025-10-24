@@ -39,6 +39,8 @@ import {
 } from './dto/dto';
 import { OrdersOperationsService } from './orders.operations.service';
 import { HubStatsFilterDto, HubStatsResponseDto } from './dto/stats-filter';
+import UserPayload from 'src/auth/types/user-payload.interface';
+import { GetCurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -68,9 +70,12 @@ export class OrdersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   create(
     @Body() createOrderDto: CreateOrderDto,
-    @Request() req: any,
+    @GetCurrentUser() userPayload: UserPayload,
   ): Promise<Order> {
-    return this.ordersOperationsService.create(createOrderDto, req.user);
+    return this.ordersOperationsService.create(
+      createOrderDto,
+      userPayload.userId,
+    );
   }
 
   @Get()
