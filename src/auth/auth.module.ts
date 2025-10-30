@@ -11,6 +11,7 @@ import { EnvConfigModule } from 'src/config/config.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { NotificationModule } from 'src/notification/notification.module';
 import { AppleStrategy } from './strategies/apple.strategy';
+import { SmsService } from './sms.service';
 
 @Module({
   imports: [
@@ -68,6 +69,13 @@ import { AppleStrategy } from './strategies/apple.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, MailService, OtpService, JwtStrategy, AppleStrategy],
+  providers: [
+    AuthService,
+    MailService,
+    OtpService,
+    JwtStrategy,
+    AppleStrategy,
+    SmsService,
+  ],
 })
 export class AuthModule {}
