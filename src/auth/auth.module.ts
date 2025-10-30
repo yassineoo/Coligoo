@@ -5,13 +5,12 @@ import { UsersModule } from 'src/users/users.module';
 import { JwtModule } from '@nestjs/jwt';
 import { MailService } from './mail.service';
 import { MailerModule } from '@nestjs-modules/mailer';
-import { OtpService } from './otp.service';
-import { GoogleClientStrategy } from './strategies/google-client.strategy';
 import { EnvConfigModule } from 'src/config/config.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { NotificationModule } from 'src/notification/notification.module';
 import { AppleStrategy } from './strategies/apple.strategy';
 import { SmsService } from './sms.service';
+import { OtpService } from './otp.service';
 
 @Module({
   imports: [
