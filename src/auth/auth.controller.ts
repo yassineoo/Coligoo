@@ -21,7 +21,6 @@ import { LoginDto } from './dto/login.dto';
 import { ContactFormDto, EmailDto } from './dto/email.dto';
 import { OtpType } from './types/otp-type.enum';
 import { VerifyEmailDto } from './dto/verify-email.dto';
-import { OtpService } from './otp.service';
 import {
   changePhoneDto,
   ResetPasswordDto,
@@ -39,6 +38,7 @@ import { GetCurrentUser } from './decorators/current-user.decorator';
 import UserPayload from './types/user-payload.interface';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { OtpService } from './otp.service';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -51,34 +51,6 @@ export class AuthController {
   @Post('/register-delivery-men')
   async registerDeliveryMen(@Body() registerDto: ClientRegisterDto) {
     return await this.authService.registerClient(registerDto);
-  }
-
-  @Post('/check-phone')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'Check if phone number exists in system' })
-  @ApiResponse({
-    status: 200,
-    description: 'Phone check result',
-    schema: {
-      properties: {
-        exists: { type: 'boolean', example: true },
-        message: { type: 'string', example: 'Phone number found' },
-        userInfo: {
-          type: 'object',
-          properties: {
-            id: { type: 'number', example: 123 },
-            role: { type: 'string', example: 'artisan' },
-            isPhoneVerified: { type: 'boolean', example: true },
-            hasPassword: { type: 'boolean', example: false },
-          },
-          nullable: true,
-        },
-      },
-    },
-  })
-  @ApiResponse({ status: 400, description: 'Invalid phone number format' })
-  async checkPhone(@Body() checkPhoneDto: SendPhoneOtpDto) {
-    return await this.authService.checkPhoneExists(checkPhoneDto.phone);
   }
 
   @Post('/register-vendor')

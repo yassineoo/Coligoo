@@ -47,6 +47,10 @@ import {
   IncomingOrderType,
   OutgoingOrderType,
 } from './dto/tabs-filter.dto';
+import {
+  DeliveryFilterType,
+  DeliverymanOrderFilterDto,
+} from './dto/delivery.dto';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -282,22 +286,36 @@ export class OrdersController {
   ): Promise<PaginatedResult<Order>> {
     return this.ordersService.findVendorOrders(req.user.id, filterDto);
   }
-
+  // Controller
   @Get('my-deliveries')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.DELIVERYMAN)
   @ApiOperation({
     summary: 'Get orders assigned to the authenticated deliveryman',
   })
+  @ApiQuery({
+    name: 'filter',
+    required: false,
+    enum: DeliveryFilterType,
+    example: DeliveryFilterType.ALL,
+    description:
+      'Filter by delivery status: all, assigned, delivered, collected',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    example: 'ORD-123',
+    description: 'Search by order ID, city, wilaya, or client name',
+  })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
-  @ApiQuery({ name: 'status', required: false, enum: OrderStatus })
   @ApiResponse({
     status: 200,
-    description: "Deliveryman's assigned orders",
+    description: "Deliveryman's assigned orders with filters",
   })
   getMyDeliveries(
-    @Query() filterDto: OrderFilterDto,
+    @Query() filterDto: DeliverymanOrderFilterDto,
     @Request() req: any,
   ): Promise<PaginatedResult<Order>> {
     return this.ordersService.findDeliverymanOrders(req.user.id, filterDto);

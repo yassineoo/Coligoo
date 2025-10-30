@@ -23,6 +23,7 @@ import {
   OutgoingOrderType,
 } from './dto/tabs-filter.dto';
 import UserPayload from 'src/auth/types/user-payload.interface';
+import { DeliverymanOrderFilterDto } from './dto/delivery.dto';
 
 @Injectable()
 export class OrdersService {
@@ -207,9 +208,10 @@ export class OrdersService {
     return this.findAllWithFilters(filterDto, user);
   }
 
+  // Service
   async findDeliverymanOrders(
     deliverymanId: number,
-    filterDto: OrderFilterDto,
+    filterDto: DeliverymanOrderFilterDto,
   ): Promise<PaginatedResult<Order>> {
     const user = await this.userRepository.findOne({
       where: { id: deliverymanId, role: UserRole.DELIVERYMAN },
@@ -219,7 +221,58 @@ export class OrdersService {
       throw new NotFoundException('Deliveryman not found');
     }
 
-    return this.findAllWithFilters(filterDto, user);
+    const { filter, search, page = 1, limit = 10 } = filterDto;
+    const skip = (page - 1) * limit;
+
+    // Build query
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.client', 'client')
+      .leftJoinAndSelect('order.deliveryman', 'deliveryman')
+      .where('order.deliverymanId = :deliverymanId', { deliverymanId });
+
+    // Apply search if provided
+    if (search && search.trim()) {
+      queryBuilder.andWhere(
+        '(order.id LIKE :search OR order.city ILIKE :search OR order.wilaya ILIKE :search OR client.name ILIKE :search)',
+        { search: `%${search.trim()}%` },
+      );
+    }
+
+    // TODO: Apply filter logic when data available
+    // For now, filter parameter is accepted but returns all (searched) orders
+    // Future implementation:
+    // switch (filter) {
+    //   case DeliveryFilterType.ASSIGNED:
+    //     queryBuilder.andWhere('order.status = :status', { status: OrderStatus.ASSIGNED });
+    //     break;
+    //   case DeliveryFilterType.DELIVERED:
+    //     queryBuilder.andWhere('order.status = :status', { status: OrderStatus.DELIVERED });
+    //     break;
+    //   case DeliveryFilterType.COLLECTED:
+    //     queryBuilder.andWhere('order.status = :status', { status: OrderStatus.COLLECTED });
+    //     break;
+    //   case DeliveryFilterType.ALL:
+    //   default:
+    //     // No additional filter
+    //     break;
+    // }
+
+    // Pagination
+    queryBuilder.skip(skip).take(limit).orderBy('order.createdAt', 'DESC');
+
+    // Execute query
+    const [orders, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      data: orders,
+      meta: {
+        total,
+        page,
+        limit,
+        lastPage: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOneWithPermission(id: number, user: User): Promise<Order> {
