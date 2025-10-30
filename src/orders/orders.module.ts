@@ -13,6 +13,7 @@ import { Product } from 'src/products/entities/product.entity';
 import { SharedOrdersService } from './shared.service';
 import { OrdersOperationsService } from './orders.operations.service';
 import { City } from 'src/wilaya/entities/city.entity';
+import { TrackingController } from './tracking.controller';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { City } from 'src/wilaya/entities/city.entity';
     EnvConfigModule,
     UsersModule,
   ],
-  controllers: [OrdersController],
+  controllers: [OrdersController, TrackingController],
   providers: [
     OrdersService,
     OrderTrackingService,

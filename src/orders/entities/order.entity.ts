@@ -262,6 +262,14 @@ export class Order {
   @Column({ nullable: true })
   withdrawalRequestId: number;
 
+  // Add to Order entity
+  @ApiPropertyOptional({ description: 'Hub that created/manages this order' })
+  @ManyToOne(() => User, { nullable: true })
+  hub: User;
+
+  @Column({ nullable: true })
+  hubId: number;
+
   // Computed properties
   get totalProductsPrice(): number {
     return (

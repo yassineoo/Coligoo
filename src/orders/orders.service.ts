@@ -16,6 +16,13 @@ import { UserRole } from 'src/common/types/roles.enum';
 import { OrderItem } from './entities/order-items';
 import { SharedOrdersService } from './shared.service';
 import { HubStatsFilterDto, HubStatsResponseDto } from './dto/stats-filter';
+import {
+  HubIncomingOrdersFilterDto,
+  HubOutgoingOrdersFilterDto,
+  IncomingOrderType,
+  OutgoingOrderType,
+} from './dto/tabs-filter.dto';
+import UserPayload from 'src/auth/types/user-payload.interface';
 
 @Injectable()
 export class OrdersService {
@@ -1494,5 +1501,240 @@ export class OrdersService {
         `Failed to retrieve hub statistics: ${error.message}`,
       );
     }
+  }
+
+  /**
+   * Get INCOMING orders for hub (orders arriving TO this hub)
+   */
+  async getHubIncomingOrders(
+    user: UserPayload,
+    filterDto: HubIncomingOrdersFilterDto,
+  ): Promise<PaginatedResult<Order>> {
+    const {
+      page = 1,
+      limit = 10,
+      type,
+      status,
+      fromWilayaCode,
+      dateFrom,
+      dateTo,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+    } = filterDto;
+
+    // Get hub's city to filter orders
+    const hubUser = await this.userRepository.findOne({
+      where: { id: user.userId },
+      relations: ['city', 'city.wilaya'],
+    });
+
+    if (!hubUser?.city) {
+      throw new BadRequestException('Hub user must have a city assigned');
+    }
+
+    let query = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.sender', 'sender')
+      .leftJoinAndSelect('order.deliveryman', 'deliveryman')
+      .leftJoinAndSelect('order.hub', 'hub')
+      .leftJoinAndSelect('order.fromCity', 'fromCity')
+      .leftJoinAndSelect('fromCity.wilaya', 'fromWilaya')
+      .leftJoinAndSelect('order.toCity', 'toCity')
+      .leftJoinAndSelect('toCity.wilaya', 'toWilaya')
+      .leftJoinAndSelect('order.orderItems', 'orderItems');
+
+    // Base filter: orders arriving TO this hub's city
+    query = query.where('order.toCityId = :cityId', {
+      cityId: hubUser.city.id,
+    });
+
+    // Filter by incoming type
+    if (type === IncomingOrderType.ACTIVE_STORES) {
+      // Orders from vendors
+      query = query.andWhere('sender.role = :vendorRole', {
+        vendorRole: UserRole.VENDOR,
+      });
+    } else if (type === IncomingOrderType.MANUAL_ENTRY) {
+      // Orders created by this hub or its staff
+      query = query.andWhere('(order.hubId = :hubId OR sender.id = :userId)', {
+        hubId: user.userId,
+        userId: user.userId,
+      });
+    } else if (type === IncomingOrderType.INTER_HUB) {
+      // Orders from other hubs with status COLLECTED
+      query = query
+        .andWhere('order.status = :collectedStatus', {
+          collectedStatus: OrderStatus.COLLECTED,
+        })
+        .andWhere('sender.role IN (:...hubRoles)', {
+          hubRoles: [UserRole.HUB_ADMIN, UserRole.HUB_EMPLOYEE],
+        })
+        .andWhere('order.hubId != :hubId', { hubId: user.userId });
+    }
+
+    // Additional filters
+    if (status) {
+      query = query.andWhere('order.status = :status', { status });
+    }
+
+    if (fromWilayaCode) {
+      query = query.andWhere('fromWilaya.code = :fromWilayaCode', {
+        fromWilayaCode,
+      });
+    }
+
+    if (dateFrom && dateTo) {
+      query = query.andWhere('order.createdAt BETWEEN :dateFrom AND :dateTo', {
+        dateFrom,
+        dateTo,
+      });
+    }
+
+    if (search) {
+      query = query.andWhere(
+        '(order.orderId LIKE :search OR order.firstname LIKE :search OR order.lastName LIKE :search OR order.contactPhone LIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    // Sorting
+    const allowedSortFields = ['createdAt', 'updatedAt', 'status', 'price'];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    query = query.orderBy(`order.${sortField}`, sortOrder);
+
+    // Pagination
+    const validatedPage = Math.max(1, page);
+    const validatedLimit = Math.min(Math.max(1, limit), 100);
+    const offset = (validatedPage - 1) * validatedLimit;
+
+    query = query.skip(offset).take(validatedLimit);
+
+    const [data, total] = await query.getManyAndCount();
+
+    return {
+      data,
+      meta: {
+        total,
+        page: validatedPage,
+        lastPage: Math.ceil(total / validatedLimit),
+        limit: validatedLimit,
+      },
+    };
+  }
+
+  /**
+   * Get OUTGOING orders for hub (orders leaving FROM this hub)
+   */
+  async getHubOutgoingOrders(
+    user: UserPayload,
+    filterDto: HubOutgoingOrdersFilterDto,
+  ): Promise<PaginatedResult<Order>> {
+    const {
+      page = 1,
+      limit = 10,
+      type,
+      status,
+      toWilayaCode,
+      dateFrom,
+      dateTo,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+    } = filterDto;
+
+    // Get hub's city
+    const hubUser = await this.userRepository.findOne({
+      where: { id: user.userId },
+      relations: ['city', 'city.wilaya'],
+    });
+
+    if (!hubUser?.city) {
+      throw new BadRequestException('Hub user must have a city assigned');
+    }
+
+    let query = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.sender', 'sender')
+      .leftJoinAndSelect('order.deliveryman', 'deliveryman')
+      .leftJoinAndSelect('order.hub', 'hub')
+      .leftJoinAndSelect('order.fromCity', 'fromCity')
+      .leftJoinAndSelect('fromCity.wilaya', 'fromWilaya')
+      .leftJoinAndSelect('order.toCity', 'toCity')
+      .leftJoinAndSelect('toCity.wilaya', 'toWilaya')
+      .leftJoinAndSelect('order.orderItems', 'orderItems');
+
+    // Base filter: orders created by this hub (going OUT from here)
+    query = query.where(
+      '(order.hubId = :hubId OR order.fromCityId = :cityId)',
+      { hubId: user.userId, cityId: hubUser.city.id },
+    );
+
+    // Filter by outgoing type
+    if (type === OutgoingOrderType.STOP_DESK) {
+      // Pickup at hub
+      query = query.andWhere('order.isStopDesk = :isStopDesk', {
+        isStopDesk: true,
+      });
+    } else if (type === OutgoingOrderType.DELIVERY) {
+      // Home delivery
+      query = query.andWhere('order.isStopDesk = :isStopDesk', {
+        isStopDesk: false,
+      });
+    } else if (type === OutgoingOrderType.INTER_HUB) {
+      // Orders to other hubs with status DEPOSITED_AT_HUB
+      query = query.andWhere('order.status = :status', {
+        status: OrderStatus.DEPOSITED_AT_HUB,
+      });
+    }
+
+    // Additional filters
+    if (status) {
+      query = query.andWhere('order.status = :status', { status });
+    }
+
+    if (toWilayaCode) {
+      query = query.andWhere('toWilaya.code = :toWilayaCode', {
+        toWilayaCode,
+      });
+    }
+
+    if (dateFrom && dateTo) {
+      query = query.andWhere('order.createdAt BETWEEN :dateFrom AND :dateTo', {
+        dateFrom,
+        dateTo,
+      });
+    }
+
+    if (search) {
+      query = query.andWhere(
+        '(order.orderId LIKE :search OR order.firstname LIKE :search OR order.lastName LIKE :search OR order.contactPhone LIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    // Sorting
+    const allowedSortFields = ['createdAt', 'updatedAt', 'status', 'price'];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    query = query.orderBy(`order.${sortField}`, sortOrder);
+
+    // Pagination
+    const validatedPage = Math.max(1, page);
+    const validatedLimit = Math.min(Math.max(1, limit), 100);
+    const offset = (validatedPage - 1) * validatedLimit;
+
+    query = query.skip(offset).take(validatedLimit);
+
+    const [data, total] = await query.getManyAndCount();
+
+    return {
+      data,
+      meta: {
+        total,
+        page: validatedPage,
+        lastPage: Math.ceil(total / validatedLimit),
+        limit: validatedLimit,
+      },
+    };
   }
 }

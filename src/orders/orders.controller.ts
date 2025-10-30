@@ -41,6 +41,12 @@ import { OrdersOperationsService } from './orders.operations.service';
 import { HubStatsFilterDto, HubStatsResponseDto } from './dto/stats-filter';
 import UserPayload from 'src/auth/types/user-payload.interface';
 import { GetCurrentUser } from 'src/auth/decorators/current-user.decorator';
+import {
+  HubIncomingOrdersFilterDto,
+  HubOutgoingOrdersFilterDto,
+  IncomingOrderType,
+  OutgoingOrderType,
+} from './dto/tabs-filter.dto';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -669,5 +675,75 @@ export class OrdersController {
     @Request() req: any,
   ): Promise<HubStatsResponseDto> {
     return this.ordersService.getHubStatistics(filterDto, req.user);
+  }
+
+  @Get('hub/incoming')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.HUB_ADMIN, UserRole.HUB_EMPLOYEE)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get incoming orders for hub (3 tabs)',
+    description:
+      'Get orders arriving TO this hub. Types: active_stores (vendors), manual_entry (hub created), inter_hub (from other hubs)',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    enum: IncomingOrderType,
+    description: 'Tab filter: active_stores, manual_entry, or inter_hub',
+  })
+  @ApiQuery({ name: 'status', required: false, enum: OrderStatus })
+  @ApiQuery({ name: 'fromWilayaCode', required: false, type: String })
+  @ApiQuery({ name: 'dateFrom', required: false, type: String })
+  @ApiQuery({ name: 'dateTo', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'sortBy', required: false, type: String })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'] })
+  @ApiResponse({
+    status: 200,
+    description: 'Incoming orders retrieved successfully',
+  })
+  getHubIncomingOrders(
+    @Query() filterDto: HubIncomingOrdersFilterDto,
+    @GetCurrentUser() user: UserPayload,
+  ): Promise<PaginatedResult<Order>> {
+    return this.ordersService.getHubIncomingOrders(user, filterDto);
+  }
+
+  @Get('hub/outgoing')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.HUB_ADMIN, UserRole.HUB_EMPLOYEE)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get outgoing orders for hub (3 tabs)',
+    description:
+      'Get orders leaving FROM this hub. Types: stop_desk (pickup), delivery (home delivery)',
+  })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    enum: OutgoingOrderType,
+    description: 'Tab filter: stop_desk or delivery',
+  })
+  @ApiQuery({ name: 'status', required: false, enum: OrderStatus })
+  @ApiQuery({ name: 'toWilayaCode', required: false, type: String })
+  @ApiQuery({ name: 'dateFrom', required: false, type: String })
+  @ApiQuery({ name: 'dateTo', required: false, type: String })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'sortBy', required: false, type: String })
+  @ApiQuery({ name: 'sortOrder', required: false, enum: ['ASC', 'DESC'] })
+  @ApiResponse({
+    status: 200,
+    description: 'Outgoing orders retrieved successfully',
+  })
+  getHubOutgoingOrders(
+    @Query() filterDto: HubOutgoingOrdersFilterDto,
+    @GetCurrentUser() user: UserPayload,
+  ): Promise<PaginatedResult<Order>> {
+    return this.ordersService.getHubOutgoingOrders(user, filterDto);
   }
 }

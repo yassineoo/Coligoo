@@ -1,8 +1,13 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateClientUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Like, Repository } from 'typeorm';
+import { DataSource, In, Like, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { Hash } from './utils/hash';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -11,12 +16,16 @@ import { AppConfig } from 'src/config/app.config';
 import { UserFilterDto } from './dto/user-filter.dto';
 import { dateCalculator } from 'src/common/utils/date-calculator';
 import { UserRole } from 'src/common/types/roles.enum';
+import { City } from 'src/wilaya/entities/city.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly usersRepository: Repository<User>,
     private readonly appConfig: AppConfig,
+
+    @InjectRepository(City)
+    private readonly cityRepository: Repository<City>,
   ) {}
   async createClient(createUserDto: CreateClientUserDto) {
     const userExist = await this.usersRepository.findOneBy({
@@ -139,29 +148,128 @@ export class UsersService {
     return await this.usersRepository.update(id, updateUserDto);
   }
 
-  async updateUserInfo(id: number, updateUserInfoDto: UpdateUserInfoDto) {
-    const user = await this.usersRepository.findOneBy({ id });
-    const imgUrl = updateUserInfoDto.filename
-      ? `${this.appConfig.getAppUrl()}/api/v1/images/profile-image/${
-          updateUserInfoDto.filename
-        }`
-      : undefined;
-    user.nom = updateUserInfoDto.nom || user.nom;
-    user.prenom = updateUserInfoDto.prenom || updateUserInfoDto.prenom;
-    if (updateUserInfoDto.email && updateUserInfoDto.email !== user.email) {
-      const userExist = await this.usersRepository.findOneBy({
-        email: updateUserInfoDto.email,
-      });
-      if (userExist) {
-        throw new BadRequestException('Cette addresse email est deja utilisé');
-      }
-    }
-    user.email = updateUserInfoDto.email || user.email;
-    user.phoneNumber = updateUserInfoDto.phoneNumber || user.phoneNumber;
+  /**
+   * Update user information including profile image and city
+   */
+  async updateUserInfo(
+    id: number,
+    updateUserInfoDto: UpdateUserInfoDto,
+  ): Promise<{ message: string; user: Partial<User> }> {
+    // Find user with relations
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['city', 'city.wilaya'],
+    });
 
-    user.imgUrl = imgUrl || user.imgUrl;
-    await this.usersRepository.save(user);
-    return { msg: 'Informations modifiees avec succes !' };
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    // Handle email update with uniqueness check
+    if (updateUserInfoDto.email && updateUserInfoDto.email !== user.email) {
+      const emailExists = await this.usersRepository.findOne({
+        where: { email: updateUserInfoDto.email },
+      });
+
+      if (emailExists) {
+        throw new ConflictException(
+          'This email address is already in use by another user',
+        );
+      }
+      user.email = updateUserInfoDto.email;
+    }
+
+    // Handle phone number update with uniqueness check
+    if (
+      updateUserInfoDto.phoneNumber &&
+      updateUserInfoDto.phoneNumber !== user.phoneNumber
+    ) {
+      const phoneExists = await this.usersRepository.findOne({
+        where: { phoneNumber: updateUserInfoDto.phoneNumber },
+      });
+
+      if (phoneExists) {
+        throw new ConflictException(
+          'This phone number is already in use by another user',
+        );
+      }
+      user.phoneNumber = updateUserInfoDto.phoneNumber;
+    }
+
+    // Handle city update
+    if (
+      updateUserInfoDto.cityId &&
+      updateUserInfoDto.cityId !== user.city?.id?.toString()
+    ) {
+      const city = await this.cityRepository.findOne({
+        where: { id: updateUserInfoDto.cityId as unknown as number },
+        relations: ['wilaya'],
+      });
+
+      if (!city) {
+        throw new NotFoundException(
+          `City with ID ${updateUserInfoDto.cityId} not found`,
+        );
+      }
+
+      user.cityId = updateUserInfoDto.cityId as unknown as number;
+      user.city = city;
+    }
+
+    // Update basic info
+    if (updateUserInfoDto.nom) {
+      user.nom = updateUserInfoDto.nom.trim();
+    }
+
+    if (updateUserInfoDto.prenom) {
+      user.prenom = updateUserInfoDto.prenom.trim();
+    }
+
+    if (updateUserInfoDto.prenom) {
+      user.prenom = updateUserInfoDto.prenom.trim();
+    }
+
+    if (updateUserInfoDto.nom) {
+      user.nom = updateUserInfoDto.nom.trim();
+    }
+
+    // Handle profile image
+    if (updateUserInfoDto.filename) {
+      const imgUrl = `${this.appConfig.getAppUrl()}/api/v1/images/profile-image/${
+        updateUserInfoDto.filename
+      }`;
+      user.imgUrl = imgUrl;
+    }
+
+    // Save updated user
+    const updatedUser = await this.usersRepository.save(user);
+
+    // Return sanitized response (without sensitive data)
+    return {
+      message: 'User information updated successfully',
+      user: {
+        id: updatedUser.id,
+        prenom: updatedUser.prenom,
+        nom: updatedUser.nom,
+        email: updatedUser.email,
+        phoneNumber: updatedUser.phoneNumber,
+        imgUrl: updatedUser.imgUrl,
+        city: updatedUser.city
+          ? ({
+              id: updatedUser.city.id,
+              name: updatedUser.city.name,
+              ar_name: updatedUser.city.ar_name,
+              wilaya: updatedUser.city.wilaya
+                ? {
+                    code: updatedUser.city.wilaya.code,
+                    name: updatedUser.city.wilaya.name,
+                    city: null,
+                  }
+                : null,
+            } as unknown as City)
+          : null,
+      },
+    };
   }
 
   async updateUserStatus(id: number, blocked: boolean) {

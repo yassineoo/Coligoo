@@ -10,10 +10,11 @@ import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { AdminController } from './admin.controller';
 import { HubAdminController } from './admin-hub.controller';
+import { City } from 'src/wilaya/entities/city.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, City]),
     EnvConfigModule,
     MulterModule.register({
       dest: './uploads/profile-images',

@@ -246,15 +246,19 @@ export class LockersService {
   /**
    * Update locker
    */
+  /**
+   * Update locker
+   */
   async update(id: number, dto: UpdateLockerDto): Promise<Locker> {
     const locker = await this.findOne(id);
 
-    // If capacity changed, reinitialize closets
+    // Handle capacity change
     if (dto.capacity && dto.capacity !== locker.capacity) {
       locker.closets = this.initializeClosets(dto.capacity);
+      locker.capacity = dto.capacity;
     }
 
-    // If city changed, regenerate referenceId
+    // Handle city change
     if (dto.cityId && dto.cityId !== locker.cityId) {
       const city = await this.cityRepo.findOne({
         where: { id: dto.cityId },
@@ -265,10 +269,17 @@ export class LockersService {
         throw new NotFoundException(`City ${dto.cityId} not found`);
       }
 
+      locker.cityId = dto.cityId;
+      locker.city = city;
       locker.referenceId = await this.generateReferenceId(dto.cityId, id);
     }
 
-    Object.assign(locker, dto);
+    // Update other fields
+    if (dto.name) locker.name = dto.name;
+    if (dto.address) locker.address = dto.address;
+    if (dto.operatingHours) locker.operatingHours = dto.operatingHours;
+    if (dto.isActive !== undefined) locker.isActive = dto.isActive;
+
     return this.lockerRepo.save(locker);
   }
 

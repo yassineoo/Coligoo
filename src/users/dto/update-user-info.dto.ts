@@ -34,6 +34,16 @@ export class UpdateUserInfoDto {
   @IsString()
   phoneNumber?: string;
 
+  @ApiProperty({ required: false, example: 594 })
+  @IsOptional()
+  @IsNumberString()
+  cityId?: string;
+
+  @ApiProperty({ required: false, example: 'address line 1' })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
   @ApiProperty({ required: false, type: 'file' })
   img?: any;
 
