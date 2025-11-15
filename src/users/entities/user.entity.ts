@@ -23,7 +23,7 @@ export class User {
   @Column({ select: false, nullable: true })
   password: string;
 
-  @Column({ select: false, nullable: true })
+  @Column({ select: true, nullable: true })
   address: string;
 
   @Column({ nullable: true })

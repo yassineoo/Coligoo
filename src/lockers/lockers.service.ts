@@ -146,7 +146,7 @@ export class LockersService {
       hasAvailableClosets,
       search,
       sortBy = 'createdAt',
-      sortOrder = 'DESC',
+      sortOrder,
     } = filterDto;
 
     let query = this.lockerRepo
@@ -174,10 +174,21 @@ export class LockersService {
       );
     }
 
-    // Sorting
+    // Sorting with intelligent defaults
     const allowedSortFields = ['name', 'createdAt', 'capacity'];
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
-    query = query.orderBy(`locker.${sortField}`, sortOrder);
+
+    // Determine sort order: ASC for name/capacity, DESC for dates
+    let finalSortOrder: 'ASC' | 'DESC';
+    if (sortOrder) {
+      // If explicitly provided, use it
+      finalSortOrder = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    } else {
+      // Smart defaults based on field type
+      finalSortOrder = sortField === 'name' ? 'ASC' : 'DESC';
+    }
+
+    query = query.orderBy(`locker.${sortField}`, finalSortOrder);
 
     // Pagination
     const validatedPage = Math.max(1, page);

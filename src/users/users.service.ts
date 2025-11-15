@@ -232,6 +232,7 @@ export class UsersService {
     if (updateUserInfoDto.nom) {
       user.nom = updateUserInfoDto.nom.trim();
     }
+    console.log('updateUserInfoDto.filename', updateUserInfoDto.filename);
 
     // Handle profile image
     if (updateUserInfoDto.filename) {
@@ -317,6 +318,8 @@ export class UsersService {
     if (!user) {
       throw new Error('User not found');
     }
+
+    console.log('usersss', user);
 
     return {
       id: user.id,

@@ -73,11 +73,15 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserInfoDto,
     @UploadedFile() img: Express.Multer.File,
   ) {
+    console.log('img', img);
+
     if (img) {
       updateUserDto.filename = img.filename;
     } else {
       updateUserDto.filename = undefined;
     }
+    console.log('imgsssss', updateUserDto);
+
     return this.usersService.updateUserInfo(userPayload.userId, updateUserDto);
   }
 

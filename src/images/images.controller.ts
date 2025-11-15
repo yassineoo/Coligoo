@@ -16,7 +16,7 @@ export class ImagesController {
   constructor(private readonly imagesService: ImagesService) {}
 
   // Profile image, carte artisan, carte identite, portfolio images, ccp receipt
-  @Get('/profile-images/:filename')
+  @Get('/profile-image/:filename')
   getProfileImage(@Param('filename') filename: string, @Res() res: Response) {
     return this.imagesService.getProfileImage(filename, res);
   }
