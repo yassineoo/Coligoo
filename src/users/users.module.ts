@@ -11,6 +11,7 @@ import { diskStorage } from 'multer';
 import { AdminController } from './admin.controller';
 import { HubAdminController } from './admin-hub.controller';
 import { City } from 'src/wilaya/entities/city.entity';
+import { BadRequestException } from '@nestjs/common';
 
 @Module({
   imports: [
@@ -27,6 +28,25 @@ import { City } from 'src/wilaya/entities/city.entity';
           cb(null, `${Date.now()}.${ext}`);
         },
       }),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB in bytes
+      },
+      fileFilter: (req, file, cb) => {
+        // Accept only image files
+        if (!file.mimetype.match(/\/(jpg|jpeg|png|gif|webp)$/)) {
+          return cb(
+            new BadRequestException({
+              message: {
+                en: 'Only image files are allowed (jpg, jpeg, png, gif, webp)',
+                fr: 'Seuls les fichiers image sont autorisés (jpg, jpeg, png, gif, webp)',
+                ar: 'يُسمح فقط بملفات الصور (jpg, jpeg, png, gif, webp)',
+              },
+            }),
+            false,
+          );
+        }
+        cb(null, true);
+      },
     }),
   ],
   controllers: [UsersController, HubAdminController, AdminController],
