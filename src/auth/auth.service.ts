@@ -63,7 +63,7 @@ export class AuthService {
     const userInfo = await this.usersService.getUserInfo(user.id);
 
     return {
-      msg: 'Inscription réussie',
+      message: 'Inscription réussie',
       token,
       userInfo,
     };
@@ -116,7 +116,7 @@ export class AuthService {
     const userInfo = await this.usersService.getUserInfo(user.id);
 
     return {
-      msg: 'Connexion réussie',
+      message: 'Connexion réussie',
       token,
       userInfo,
     };
@@ -148,7 +148,7 @@ export class AuthService {
     const userInfo = await this.usersService.getUserInfo(user.id);
 
     return {
-      msg: 'Inscription réussie',
+      message: 'Inscription réussie',
       token,
       userInfo,
     };
@@ -182,7 +182,7 @@ export class AuthService {
     await this.usersService.update(userId, updateData);
 
     return {
-      msg: {
+      message: {
         fr: 'Numéro de téléphone modifié avec succès',
         ar: 'تم تغيير رقم الهاتف بنجاح',
       },
@@ -247,7 +247,7 @@ export class AuthService {
         deviceToken: registerDto.deviceToken,
       });
     }
-    return { msg: 'Inscription réussie', token };
+    return { message: 'Inscription réussie', token };
   }*/
 
   async adminLogin(loginDto: LoginDto) {
@@ -271,7 +271,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
     });
-    return { msg: 'Connexion réussie', token };
+    return { message: 'Connexion réussie', token };
   }
 
   // async getAuthUrl() {
@@ -329,7 +329,7 @@ export class AuthService {
     }
       */
     return {
-      msg: 'Email vérifié avec succès',
+      message: 'Email vérifié avec succès',
       token,
       userInfo: {
         id: user.id,
@@ -359,7 +359,7 @@ export class AuthService {
       otpType,
     );
     return {
-      msg: {
+      message: {
         fr: 'Email de vérification envoyé',
         ar: 'تم إرسال البريد الإلكتروني للتحقق',
         en: 'Verification email sent',
@@ -407,7 +407,7 @@ export class AuthService {
     if (!user) {
       throw new BadRequestException('Token invalide');
     }
-    return { msg: 'Token valide', success: true };
+    return { message: 'Token valide', success: true };
   }
 
   // Add this method to your UsersService class
@@ -416,7 +416,8 @@ export class AuthService {
       await this.mailService.sendContactFormEmail(contactFormDto);
 
       return {
-        msg: 'Votre message a été envoyé avec succès. Nous vous contacterons bientôt.',
+        message:
+          'Votre message a été envoyé avec succès. Nous vous contacterons bientôt.',
         msgAr: 'تم إرسال رسالتك بنجاح. سنتواصل معك قريباً.',
         success: true,
       };
@@ -465,7 +466,7 @@ export class AuthService {
     );
 
     return {
-      msg: {
+      message: {
         fr: 'Un lien de réinitialisation de mot de passe a été envoyé à votre email',
         ar: 'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني',
         en: 'A password reset link has been sent to your email',
@@ -502,7 +503,7 @@ export class AuthService {
 
       return {
         valid: true,
-        msg: {
+        message: {
           fr: 'Token valide',
           ar: 'رمز صالح',
           en: 'valid Token',
@@ -562,7 +563,7 @@ export class AuthService {
       );
 
       return {
-        msg: {
+        message: {
           fr: 'Mot de passe réinitialisé avec succès',
           ar: 'تم إعادة تعيين كلمة المرور بنجاح',
           en: 'Password reset successfully',

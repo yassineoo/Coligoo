@@ -1,26 +1,30 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Body, 
-  Patch, 
-  Param, 
-  Delete, 
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
   Query,
   ParseIntPipe,
   HttpStatus,
   HttpCode,
   UseGuards,
-  ParseArrayPipe
+  ParseArrayPipe,
 } from '@nestjs/common';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
-  ApiBearerAuth, 
-  ApiParam
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
-import { CreateAdminUserDto, UpdateAdminUserDto, AdminUserFilterDto } from './dto/admin.dto';
+import {
+  CreateAdminUserDto,
+  UpdateAdminUserDto,
+  AdminUserFilterDto,
+} from './dto/admin.dto';
 import { User } from './entities/user.entity';
 import { UserRole } from 'src/common/types/roles.enum';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
@@ -43,21 +47,23 @@ export class AdminController {
   @ApiResponse({
     status: 201,
     description: 'User created successfully',
-    type: User
+    type: User,
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid input data or email already exists'
+    description: 'Invalid input data or email already exists',
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized'
+    description: 'Unauthorized',
   })
   @ApiResponse({
     status: 403,
-    description: 'Forbidden - Admin role required'
+    description: 'Forbidden - Admin role required',
   })
-  async createUser(@Body() createAdminUserDto: CreateAdminUserDto): Promise<User> {
+  async createUser(
+    @Body() createAdminUserDto: CreateAdminUserDto,
+  ): Promise<User> {
     return await this.adminService.createUser(createAdminUserDto);
   }
 
@@ -68,9 +74,11 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Users retrieved successfully',
-    type: PaginatedResponse<User>
+    type: PaginatedResponse<User>,
   })
-  async findAllUsers(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllUsers(
+    @Query() adminUserFilterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     return await this.adminService.findAllUsers(adminUserFilterDto);
   }
 
@@ -81,9 +89,11 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Admin users retrieved successfully',
-    type: PaginatedResponse<User>
+    type: PaginatedResponse<User>,
   })
-  async findAllAdmins(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllAdmins(
+    @Query() adminUserFilterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     return await this.adminService.findAllAdmins(adminUserFilterDto);
   }
 
@@ -94,9 +104,11 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Hub admin users retrieved successfully',
-    type: PaginatedResponse<User>
+    type: PaginatedResponse<User>,
   })
-  async findAllHubAdmins(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllHubAdmins(
+    @Query() adminUserFilterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     return await this.adminService.findAllHubAdmins(adminUserFilterDto);
   }
 
@@ -107,9 +119,11 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Moderator users retrieved successfully',
-    type: PaginatedResponse<User>
+    type: PaginatedResponse<User>,
   })
-  async findAllModerators(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllModerators(
+    @Query() adminUserFilterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     return await this.adminService.findAllModerators(adminUserFilterDto);
   }
 
@@ -120,9 +134,11 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Vendor users retrieved successfully',
-    type: PaginatedResponse<User>
+    type: PaginatedResponse<User>,
   })
-  async findAllVendors(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllVendors(
+    @Query() adminUserFilterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     return await this.adminService.findAllVendors(adminUserFilterDto);
   }
 
@@ -133,9 +149,11 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Client users retrieved successfully',
-    type: PaginatedResponse<User>
+    type: PaginatedResponse<User>,
   })
-  async findAllClients(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllClients(
+    @Query() adminUserFilterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     return await this.adminService.findAllClients(adminUserFilterDto);
   }
 
@@ -146,9 +164,11 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Deliveryman users retrieved successfully',
-    type: PaginatedResponse<User>
+    type: PaginatedResponse<User>,
   })
-  async findAllDeliverymen(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllDeliverymen(
+    @Query() adminUserFilterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     return await this.adminService.findAllDeliverymen(adminUserFilterDto);
   }
 
@@ -159,9 +179,11 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Hub employee users retrieved successfully',
-    type: PaginatedResponse<User>
+    type: PaginatedResponse<User>,
   })
-  async findAllHubEmployees(@Query() adminUserFilterDto: AdminUserFilterDto): Promise<PaginatedResponse<User>> {
+  async findAllHubEmployees(
+    @Query() adminUserFilterDto: AdminUserFilterDto,
+  ): Promise<PaginatedResponse<User>> {
     return await this.adminService.findAllHubEmployees(adminUserFilterDto);
   }
 
@@ -173,17 +195,20 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Hub employees retrieved successfully',
-    type: PaginatedResponse<User>
+    type: PaginatedResponse<User>,
   })
   @ApiResponse({
     status: 404,
-    description: 'Hub admin not found'
+    description: 'Hub admin not found',
   })
   async getHubEmployees(
     @Param('hubAdminId', ParseIntPipe) hubAdminId: number,
-    @Query() adminUserFilterDto: AdminUserFilterDto
+    @Query() adminUserFilterDto: AdminUserFilterDto,
   ): Promise<PaginatedResponse<User>> {
-    return await this.adminService.getHubEmployees(hubAdminId, adminUserFilterDto);
+    return await this.adminService.getHubEmployees(
+      hubAdminId,
+      adminUserFilterDto,
+    );
   }
 
   @Get('statistics')
@@ -192,7 +217,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Get system-wide user statistics' })
   @ApiResponse({
     status: 200,
-    description: 'User statistics retrieved successfully'
+    description: 'User statistics retrieved successfully',
   })
   async getUserStatistics(): Promise<{
     total: number;
@@ -217,11 +242,11 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'User found',
-    type: User
+    type: User,
   })
   @ApiResponse({
     status: 404,
-    description: 'User not found'
+    description: 'User not found',
   })
   async findUserById(@Param('id', ParseIntPipe) id: number): Promise<User> {
     return await this.adminService.findUserById(id);
@@ -235,19 +260,19 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'User updated successfully',
-    type: User
+    type: User,
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid input data'
+    description: 'Invalid input data',
   })
   @ApiResponse({
     status: 404,
-    description: 'User not found'
+    description: 'User not found',
   })
   async updateUser(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateAdminUserDto: UpdateAdminUserDto
+    @Body() updateAdminUserDto: UpdateAdminUserDto,
   ): Promise<User> {
     return await this.adminService.updateUser(id, updateAdminUserDto);
   }
@@ -259,12 +284,12 @@ export class AdminController {
   @ApiParam({ name: 'id', description: 'User ID', type: 'number' })
   @ApiResponse({
     status: 200,
-    description: 'User status updated successfully'
+    description: 'User status updated successfully',
   })
   async updateUserStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Body('blocked') blocked: boolean
-  ): Promise<{ msg: string }> {
+    @Body('blocked') blocked: boolean,
+  ): Promise<{ message: string }> {
     return await this.adminService.updateUserStatus(id, blocked);
   }
 
@@ -276,11 +301,12 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'User permissions updated successfully',
-    type: User
+    type: User,
   })
   async updateUserPermissions(
     @Param('id', ParseIntPipe) id: number,
-    @Body('permissions', new ParseArrayPipe({ items: String })) permissions: string[]
+    @Body('permissions', new ParseArrayPipe({ items: String }))
+    permissions: string[],
   ): Promise<User> {
     return await this.adminService.updateUserPermissions(id, permissions);
   }
@@ -293,17 +319,19 @@ export class AdminController {
   @ApiParam({ name: 'id', description: 'User ID', type: 'number' })
   @ApiResponse({
     status: 200,
-    description: 'User deleted successfully'
+    description: 'User deleted successfully',
   })
   @ApiResponse({
     status: 400,
-    description: 'Cannot delete hub admin with employees'
+    description: 'Cannot delete hub admin with employees',
   })
   @ApiResponse({
     status: 404,
-    description: 'User not found'
+    description: 'User not found',
   })
-  async deleteUser(@Param('id', ParseIntPipe) id: number): Promise<{ msg: string }> {
+  async deleteUser(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<{ message: string }> {
     return await this.adminService.deleteUser(id);
   }
 
@@ -313,12 +341,12 @@ export class AdminController {
   @ApiOperation({ summary: 'Bulk update user status' })
   @ApiResponse({
     status: 200,
-    description: 'Users status updated successfully'
+    description: 'Users status updated successfully',
   })
   async bulkUpdateUserStatus(
     @Body('userIds', new ParseArrayPipe({ items: Number })) userIds: number[],
-    @Body('blocked') blocked: boolean
-  ): Promise<{ msg: string; updated: number }> {
+    @Body('blocked') blocked: boolean,
+  ): Promise<{ message: string; updated: number }> {
     return await this.adminService.bulkUpdateUserStatus(userIds, blocked);
   }
 
@@ -329,15 +357,15 @@ export class AdminController {
   @ApiOperation({ summary: 'Bulk delete users' })
   @ApiResponse({
     status: 200,
-    description: 'Users deleted successfully'
+    description: 'Users deleted successfully',
   })
   @ApiResponse({
     status: 400,
-    description: 'Cannot delete hub admins with employees'
+    description: 'Cannot delete hub admins with employees',
   })
   async bulkDeleteUsers(
-    @Body('userIds', new ParseArrayPipe({ items: Number })) userIds: number[]
-  ): Promise<{ msg: string; deleted: number }> {
+    @Body('userIds', new ParseArrayPipe({ items: Number })) userIds: number[],
+  ): Promise<{ message: string; deleted: number }> {
     return await this.adminService.bulkDeleteUsers(userIds);
   }
 }

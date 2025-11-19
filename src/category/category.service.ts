@@ -30,7 +30,7 @@ export class CategoryService {
       }`,
     });
     await this.categoryRepository.save(category);
-    return { msg: 'Category cree avec succes' };
+    return { message: 'Category cree avec succes' };
   }
 
   async findAll() {
@@ -107,7 +107,7 @@ export class CategoryService {
     category.ar_name = updateCategoryDto.ar_name;
     category.color = updateCategoryDto.color;
     await this.categoryRepository.save(category);
-    return { msg: 'Category modifie avec succes' };
+    return { message: 'Category modifie avec succes' };
   }
 
   async remove(id: number) {
@@ -129,7 +129,7 @@ export class CategoryService {
       ),
     );
     await this.categoryRepository.delete(category.id);
-    return { msg: 'Category supprime avec succes' };
+    return { message: 'Category supprime avec succes' };
   }
     */
 }

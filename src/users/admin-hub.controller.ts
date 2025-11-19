@@ -237,7 +237,7 @@ export class HubAdminController {
     @Param('id', ParseIntPipe) id: number,
     @Body('blocked') blocked: boolean,
     @GetCurrentUser() currentUser: UserPayload,
-  ): Promise<{ msg: string }> {
+  ): Promise<{ message: string }> {
     return await this.hubAdminService.updateEmployeeStatus(
       id,
       currentUser.userId,
@@ -285,7 +285,7 @@ export class HubAdminController {
   async deleteEmployee(
     @Param('id', ParseIntPipe) id: number,
     @GetCurrentUser() currentUser: UserPayload,
-  ): Promise<{ msg: string }> {
+  ): Promise<{ message: string }> {
     return await this.hubAdminService.deleteEmployee(id, currentUser.userId);
   }
 
@@ -302,7 +302,7 @@ export class HubAdminController {
     employeeIds: number[],
     @Body('blocked') blocked: boolean,
     @GetCurrentUser() currentUser: UserPayload,
-  ): Promise<{ msg: string; updated: number }> {
+  ): Promise<{ message: string; updated: number }> {
     return await this.hubAdminService.bulkUpdateEmployeeStatus(
       employeeIds,
       currentUser.userId,
@@ -322,7 +322,7 @@ export class HubAdminController {
   async bulkDeleteEmployees(
     @Body() body: BulkDeleteEmployeesDto,
     @GetCurrentUser() currentUser: UserPayload,
-  ): Promise<{ msg: string; deleted: number }> {
+  ): Promise<{ message: string; deleted: number }> {
     const { employeeIds } = body;
     return await this.hubAdminService.bulkDeleteEmployees(
       employeeIds,

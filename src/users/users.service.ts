@@ -31,20 +31,28 @@ export class UsersService {
     const userExist = await this.usersRepository.findOneBy({
       email: createUserDto.email,
     });
+
     if (userExist) {
       throw new BadRequestException({
-        fr: 'Cet email est déjà utilisé',
-        ar: 'هذا البريد الإلكتروني مستخدم بالفعل',
+        message: {
+          en: 'This email is already in use',
+          fr: 'Cet email est déjà utilisé',
+          ar: 'هذا البريد الإلكتروني مستخدم بالفعل',
+        },
       });
     }
+
     const hashedPassword = createUserDto.password
       ? await Hash.hash(createUserDto.password)
       : null;
+
     const user = this.usersRepository.create({
       ...createUserDto,
       password: hashedPassword,
     });
+
     await this.usersRepository.save(user);
+
     return user;
   }
 
@@ -154,7 +162,10 @@ export class UsersService {
   async updateUserInfo(
     id: number,
     updateUserInfoDto: UpdateUserInfoDto,
-  ): Promise<{ message: string; user: Partial<User> }> {
+  ): Promise<{
+    message: { en: string; fr: string; ar: string };
+    user: Partial<User>;
+  }> {
     // Find user with relations
     const user = await this.usersRepository.findOne({
       where: { id },
@@ -162,7 +173,13 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException({
+        message: {
+          en: `User with ID ${id} not found`,
+          fr: `Utilisateur avec l'ID ${id} introuvable`,
+          ar: `المستخدم برقم ${id} غير موجود`,
+        },
+      });
     }
 
     // Handle email update with uniqueness check
@@ -172,9 +189,13 @@ export class UsersService {
       });
 
       if (emailExists) {
-        throw new ConflictException(
-          'This email address is already in use by another user',
-        );
+        throw new ConflictException({
+          message: {
+            en: 'This email address is already in use by another user',
+            fr: 'Cette adresse e-mail est déjà utilisée par un autre utilisateur',
+            ar: 'عنوان البريد الإلكتروني هذا مستخدم بالفعل من قبل مستخدم آخر',
+          },
+        });
       }
       user.email = updateUserInfoDto.email;
     }
@@ -189,9 +210,13 @@ export class UsersService {
       });
 
       if (phoneExists) {
-        throw new ConflictException(
-          'This phone number is already in use by another user',
-        );
+        throw new ConflictException({
+          message: {
+            en: 'This phone number is already in use by another user',
+            fr: 'Ce numéro de téléphone est déjà utilisé par un autre utilisateur',
+            ar: 'رقم الهاتف هذا مستخدم بالفعل من قبل مستخدم آخر',
+          },
+        });
       }
       user.phoneNumber = updateUserInfoDto.phoneNumber;
     }
@@ -207,9 +232,13 @@ export class UsersService {
       });
 
       if (!city) {
-        throw new NotFoundException(
-          `City with ID ${updateUserInfoDto.cityId} not found`,
-        );
+        throw new NotFoundException({
+          message: {
+            en: `City with ID ${updateUserInfoDto.cityId} not found`,
+            fr: `Ville avec l'ID ${updateUserInfoDto.cityId} introuvable`,
+            ar: `المدينة برقم ${updateUserInfoDto.cityId} غير موجودة`,
+          },
+        });
       }
 
       user.cityId = updateUserInfoDto.cityId as unknown as number;
@@ -225,13 +254,6 @@ export class UsersService {
       user.prenom = updateUserInfoDto.prenom.trim();
     }
 
-    if (updateUserInfoDto.prenom) {
-      user.prenom = updateUserInfoDto.prenom.trim();
-    }
-
-    if (updateUserInfoDto.nom) {
-      user.nom = updateUserInfoDto.nom.trim();
-    }
     console.log('updateUserInfoDto.filename', updateUserInfoDto.filename);
 
     // Handle profile image
@@ -247,7 +269,11 @@ export class UsersService {
 
     // Return sanitized response (without sensitive data)
     return {
-      message: 'User information updated successfully',
+      message: {
+        en: 'User information updated successfully',
+        fr: 'Informations utilisateur mises à jour avec succès',
+        ar: 'تم تحديث معلومات المستخدم بنجاح',
+      },
       user: {
         id: updatedUser.id,
         prenom: updatedUser.prenom,
@@ -275,12 +301,27 @@ export class UsersService {
 
   async updateUserStatus(id: number, blocked: boolean) {
     const user = await this.usersRepository.findOneBy({ id });
+
     if (!user) {
-      throw new BadRequestException("User doesn't exist");
+      throw new BadRequestException({
+        message: {
+          en: "User doesn't exist",
+          fr: "L'utilisateur n'existe pas",
+          ar: 'المستخدم غير موجود',
+        },
+      });
     }
+
     user.blocked = blocked;
     await this.usersRepository.save(user);
-    return { msg: 'Utilisateur modifie avec succes !' };
+
+    return {
+      message: {
+        en: 'User updated successfully!',
+        fr: 'Utilisateur modifié avec succès !',
+        ar: 'تم تحديث المستخدم بنجاح!',
+      },
+    };
   }
 
   async changePassword(userId: number, changePasswordDto: ChangePasswordDto) {
@@ -290,21 +331,44 @@ export class UsersService {
       },
       select: ['password', 'id', 'email'],
     });
+
     if (!user) {
-      throw new BadRequestException("User doesn't exist");
+      throw new BadRequestException({
+        message: {
+          en: "User doesn't exist",
+          fr: "L'utilisateur n'existe pas",
+          ar: 'المستخدم غير موجود',
+        },
+      });
     }
+
     if (user.password) {
       const passwordMatch = await Hash.compare(
         changePasswordDto.oldPassword,
         user.password,
       );
+
       if (!passwordMatch) {
-        throw new BadRequestException('Mot de passe incorrect !');
+        throw new BadRequestException({
+          message: {
+            en: 'Incorrect password!',
+            fr: 'Mot de passe incorrect !',
+            ar: 'كلمة المرور غير صحيحة!',
+          },
+        });
       }
     }
+
     user.password = await Hash.hash(changePasswordDto.newPassword);
     await this.usersRepository.save(user);
-    return { msg: 'Mot de passe modifiee avec succes !' };
+
+    return {
+      message: {
+        en: 'Password changed successfully!',
+        fr: 'Mot de passe modifié avec succès !',
+        ar: 'تم تغيير كلمة المرور بنجاح!',
+      },
+    };
   }
 
   async getUserInfo(userId: number) {
@@ -358,7 +422,7 @@ export class UsersService {
       throw new BadRequestException("User doesn't exist");
     }
     await this.usersRepository.delete(id);
-    return { msg: 'Utilisateur supprime avec succes !' };
+    return { message: 'Utilisateur supprime avec succes !' };
   }
 
   async deleteAccount(userId: number) {
@@ -368,7 +432,7 @@ export class UsersService {
     }
     await this.usersRepository.delete(userId);
     return {
-      msg: 'Compte supprime avec succes !',
+      message: 'Compte supprime avec succes !',
       msgAr: 'تم حذف الحساب بنجاح !',
     };
   }

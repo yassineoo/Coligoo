@@ -327,14 +327,14 @@ export class AdminService {
   async updateUserStatus(
     id: number,
     blocked: boolean,
-  ): Promise<{ msg: string }> {
+  ): Promise<{ message: string }> {
     const user = await this.findUserById(id);
 
     user.blocked = blocked;
     await this.usersRepository.save(user);
 
     return {
-      msg: blocked
+      message: blocked
         ? 'Utilisateur bloqué avec succès !'
         : 'Utilisateur débloqué avec succès !',
     };
@@ -358,7 +358,7 @@ export class AdminService {
   /**
    * Delete a user
    */
-  async deleteUser(id: number): Promise<{ msg: string }> {
+  async deleteUser(id: number): Promise<{ message: string }> {
     const user = await this.findUserById(id);
 
     // Check if user has employees (for HUB_ADMIN)
@@ -377,7 +377,7 @@ export class AdminService {
     await this.usersRepository.delete(id);
 
     return {
-      msg: 'Utilisateur supprimé avec succès !',
+      message: 'Utilisateur supprimé avec succès !',
     };
   }
 
@@ -521,7 +521,7 @@ export class AdminService {
   async bulkUpdateUserStatus(
     userIds: number[],
     blocked: boolean,
-  ): Promise<{ msg: string; updated: number }> {
+  ): Promise<{ message: string; updated: number }> {
     const result = await this.usersRepository
       .createQueryBuilder()
       .update(User)
@@ -530,7 +530,7 @@ export class AdminService {
       .execute();
 
     return {
-      msg: `${result.affected} utilisateurs ${
+      message: `${result.affected} utilisateurs ${
         blocked ? 'bloqués' : 'débloqués'
       } avec succès !`,
       updated: result.affected || 0,
@@ -542,7 +542,7 @@ export class AdminService {
    */
   async bulkDeleteUsers(
     userIds: number[],
-  ): Promise<{ msg: string; deleted: number }> {
+  ): Promise<{ message: string; deleted: number }> {
     // Check for hub admins with employees
     const hubAdminsWithEmployees = await this.usersRepository
       .createQueryBuilder('user')
@@ -569,7 +569,7 @@ export class AdminService {
       .execute();
 
     return {
-      msg: `${result.affected} utilisateurs supprimés avec succès !`,
+      message: `${result.affected} utilisateurs supprimés avec succès !`,
       deleted: result.affected || 0,
     };
   }

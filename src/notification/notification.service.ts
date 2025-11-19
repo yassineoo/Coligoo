@@ -264,7 +264,7 @@ export class NotificationService {
         } catch (error) {}
       }),
     );
-    return { msg: 'Notifcations envoyes avec succes !' };
+    return { message: 'Notifcations envoyes avec succes !' };
   }
 
   async getUserNotifications(filter: FilterDto, userId: number) {
@@ -316,7 +316,7 @@ export class NotificationService {
       { user: { id: userId } },
       { read: true },
     );
-    return { msg: 'Notifications marked as read' };
+    return { message: 'Notifications marked as read' };
   }
 
   async checkUnreadNotifications(userId: number) {

@@ -279,14 +279,14 @@ export class HubAdminService {
     employeeId: number,
     hubAdminId: number,
     blocked: boolean,
-  ): Promise<{ msg: string }> {
+  ): Promise<{ message: string }> {
     const employee = await this.findEmployeeById(employeeId, hubAdminId);
 
     employee.blocked = blocked;
     await this.usersRepository.save(employee);
 
     return {
-      msg: blocked
+      message: blocked
         ? 'Employé bloqué avec succès !'
         : 'Employé débloqué avec succès !',
     };
@@ -314,13 +314,13 @@ export class HubAdminService {
   async deleteEmployee(
     employeeId: number,
     hubAdminId: number,
-  ): Promise<{ msg: string }> {
+  ): Promise<{ message: string }> {
     const employee = await this.findEmployeeById(employeeId, hubAdminId);
 
     await this.usersRepository.delete(employeeId);
 
     return {
-      msg: 'Employé supprimé avec succès !',
+      message: 'Employé supprimé avec succès !',
     };
   }
 
@@ -380,7 +380,7 @@ export class HubAdminService {
     employeeIds: number[],
     hubAdminId: number,
     blocked: boolean,
-  ): Promise<{ msg: string; updated: number }> {
+  ): Promise<{ message: string; updated: number }> {
     // Verify that all employees belong to this HUB_ADMIN
     const employees = await this.usersRepository.find({
       where: {
@@ -411,7 +411,7 @@ export class HubAdminService {
       .execute();
 
     return {
-      msg: `${result.affected} employés ${
+      message: `${result.affected} employés ${
         blocked ? 'bloqués' : 'débloqués'
       } avec succès !`,
       updated: result.affected || 0,
@@ -424,7 +424,7 @@ export class HubAdminService {
   async bulkDeleteEmployees(
     employeeIds: number[],
     hubAdminId: number,
-  ): Promise<{ msg: string; deleted: number }> {
+  ): Promise<{ message: string; deleted: number }> {
     // Verify that all employees belong to this HUB_ADMIN
     const employees = await this.usersRepository.find({
       where: {
@@ -455,7 +455,7 @@ export class HubAdminService {
       .execute();
 
     return {
-      msg: `${result.affected} employés supprimés avec succès !`,
+      message: `${result.affected} employés supprimés avec succès !`,
       deleted: result.affected || 0,
     };
   }

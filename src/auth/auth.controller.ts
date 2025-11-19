@@ -178,7 +178,7 @@ export class AuthController {
     description: 'Reset link sent successfully',
     schema: {
       properties: {
-        msg: {
+        message: {
           type: 'object',
           properties: {
             fr: {
@@ -220,7 +220,7 @@ export class AuthController {
     schema: {
       properties: {
         valid: { type: 'boolean', example: true },
-        msg: {
+        message: {
           type: 'object',
           properties: {
             fr: { type: 'string', example: 'Token valide' },
@@ -249,7 +249,7 @@ export class AuthController {
     description: 'Password reset successfully',
     schema: {
       properties: {
-        msg: {
+        message: {
           type: 'object',
           properties: {
             fr: {
