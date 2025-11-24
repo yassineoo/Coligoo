@@ -104,6 +104,8 @@ export class LockersService {
       referenceId: 'TEMP', // Temporary, will be updated after save
       name: dto.name,
       address: dto.address,
+      latitude: dto.latitude,
+      longitude: dto.longitude,
       cityId: dto.cityId,
       capacity: dto.capacity,
       closets: this.initializeClosets(dto.capacity),
@@ -288,6 +290,8 @@ export class LockersService {
     // Update other fields
     if (dto.name) locker.name = dto.name;
     if (dto.address) locker.address = dto.address;
+    if (dto.latitude !== undefined) locker.latitude = dto.latitude;
+    if (dto.longitude !== undefined) locker.longitude = dto.longitude;
     if (dto.operatingHours) locker.operatingHours = dto.operatingHours;
     if (dto.isActive !== undefined) locker.isActive = dto.isActive;
 

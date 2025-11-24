@@ -290,6 +290,113 @@ export class HubService {
     return this.flattenHubData(updatedHub);
   }
 
+  // hub/hub.service.ts - Update the updateProfile method signature
+
+  /**
+   * Update hub profile by admin user ID (for logged-in hub admin)
+   */
+  async updateProfile(adminUserId: number, updateHubDto: UpdateHubDto) {
+    // Find hub by admin user ID
+    const hub = await this.hubRepository.findOne({
+      where: { adminUserId },
+      relations: ['admin', 'city', 'city.wilaya'],
+    });
+
+    if (!hub) {
+      throw new NotFoundException('Hub not found for this admin user');
+    }
+
+    const {
+      name,
+      address,
+      latitude,
+      longitude,
+      cityId,
+      isActive, // ✅ Now available from UpdateHubDto
+      email,
+      password,
+      prenom,
+      nom,
+      phoneNumber,
+      permissions,
+      fileName,
+    } = updateHubDto;
+
+    // Update hub fields
+    if (name !== undefined) hub.name = name;
+    if (address !== undefined) hub.address = address;
+    if (latitude !== undefined) hub.latitude = latitude;
+    if (longitude !== undefined) hub.longitude = longitude;
+    if (cityId !== undefined) hub.cityId = cityId;
+    if (isActive !== undefined) hub.isActive = isActive; // ✅ Can update isActive too
+    hub.updatedAt = new Date();
+
+    await this.hubRepository.save(hub);
+
+    // Update admin user fields
+    const adminUser = hub.admin;
+    let adminUpdated = false;
+
+    if (email !== undefined && email !== adminUser.email) {
+      const existingUser = await this.userRepository.findOne({
+        where: { email },
+      });
+      if (existingUser && existingUser.id !== adminUser.id) {
+        throw new ConflictException('Email already exists');
+      }
+      adminUser.email = email;
+      adminUpdated = true;
+    }
+
+    if (password !== undefined) {
+      adminUser.password = await Hash.hash(password);
+      adminUpdated = true;
+    }
+
+    if (prenom !== undefined) {
+      adminUser.prenom = prenom;
+      adminUpdated = true;
+    }
+
+    if (nom !== undefined) {
+      adminUser.nom = nom;
+      adminUpdated = true;
+    }
+
+    if (prenom !== undefined || nom !== undefined) {
+      adminUser.fullName = `${adminUser.prenom || ''} ${
+        adminUser.nom || ''
+      }`.trim();
+    }
+
+    if (phoneNumber !== undefined) {
+      adminUser.phoneNumber = phoneNumber;
+      adminUpdated = true;
+    }
+
+    if (permissions !== undefined) {
+      adminUser.permissions = permissions;
+      adminUpdated = true;
+    }
+
+    if (fileName !== undefined) {
+      adminUser.imgUrl = fileName;
+      adminUpdated = true;
+    }
+
+    if (adminUpdated) {
+      await this.userRepository.save(adminUser);
+    }
+
+    // Fetch updated hub with relations
+    const updatedHub = await this.hubRepository.findOne({
+      where: { id: hub.id },
+      relations: ['admin', 'employees', 'city', 'city.wilaya'],
+    });
+
+    return this.flattenHubData(updatedHub);
+  }
+
   /**
    * Delete hub and its admin user
    */

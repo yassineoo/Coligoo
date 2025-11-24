@@ -24,6 +24,9 @@ export interface Closet {
   id: number;
   status: ClosetStatus;
   currentOrderId: number | null;
+  passwordHash?: string;
+  passwordExpiresAt?: string;
+  depositedAt?: string;
 }
 
 export interface OperatingHours {
@@ -56,6 +59,12 @@ export class Locker {
   @ApiProperty({ example: 'حي السلام، شارع الاستقلال' })
   @Column()
   address: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 8, nullable: true })
+  latitude: number;
+
+  @Column({ type: 'decimal', precision: 11, scale: 8, nullable: true })
+  longitude: number;
 
   @ApiProperty({
     description: 'City where locker is located',

@@ -15,6 +15,8 @@ import { HubService } from './hub.service';
 import { CreateHubDto } from './dto/create-hub.dto';
 import { UpdateHubDto } from './dto/update-hub.dto';
 import { QueryHubDto } from './dto/hub-filters.dto';
+import UserPayload from 'src/auth/types/user-payload.interface';
+import { GetCurrentUser } from 'src/auth/decorators/current-user.decorator';
 
 @ApiTags('Hubs')
 @Controller('hubs')
@@ -44,6 +46,18 @@ export class HubController {
   @ApiOperation({ summary: 'Get hub by admin user ID' })
   findByAdmin(@Param('adminUserId', ParseIntPipe) adminUserId: number) {
     return this.hubService.findByAdminUserId(adminUserId);
+  }
+
+  @Patch('profile')
+  @ApiOperation({ summary: 'Update hub profile (for logged-in hub admin)' })
+  @ApiResponse({ status: 200, description: 'Hub profile updated successfully' })
+  async updateProfile(
+    @GetCurrentUser() userPayload: UserPayload,
+    @Body() updateHubDto: UpdateHubDto, // ✅ Use the same DTO
+  ) {
+    console.log('updateHubDto', updateHubDto);
+
+    return this.hubService.updateProfile(userPayload.userId, updateHubDto);
   }
 
   @Patch(':id')

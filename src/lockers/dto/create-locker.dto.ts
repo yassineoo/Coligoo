@@ -20,6 +20,17 @@ export class CreateLockerDto {
   @IsString()
   address: string;
 
+  @ApiPropertyOptional({ example: 36.737232, description: 'Latitude' })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  latitude?: number;
+  @ApiPropertyOptional({ example: 3.086472, description: 'Longitude' })
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  longitude?: number;
+
   @ApiProperty({ example: 1, description: 'City ID' })
   @IsNumber()
   @Type(() => Number)

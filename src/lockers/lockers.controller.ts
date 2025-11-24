@@ -100,6 +100,8 @@ export class LockersController {
         referenceId: 'LOCK-16-1',
         name: 'Downtown Locker Station',
         address: 'حي السلام، شارع الاستقلال',
+        latitude: 36.737232,
+        longitude: 3.086472,
         cityId: 1,
         capacity: 20,
         closets: [
