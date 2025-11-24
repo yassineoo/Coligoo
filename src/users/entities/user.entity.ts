@@ -1,7 +1,9 @@
+// user/entities/user.entity.ts
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from 'src/common/types/roles.enum';
 import { Notification } from 'src/notification/entities/notification.entity';
 import { City } from 'src/wilaya/entities/city.entity';
+import { Hub } from 'src/hub/entities/hub.entity';
 import {
   Column,
   CreateDateColumn,
@@ -23,9 +25,6 @@ export class User {
   @Column({ select: false, nullable: true })
   password: string;
 
-  @Column({ select: true, nullable: true })
-  address: string;
-
   @Column({ nullable: true })
   nom: string;
 
@@ -38,21 +37,18 @@ export class User {
   @Column({ type: 'enum', enum: UserRole })
   role: UserRole;
 
-  // 👇 permissions array of strings
+  // Permissions array
   @Column('simple-array', { nullable: true })
   permissions: string[];
 
-  // 👇 Hub relationship - HUB_EMPLOYEE belongs to HUB_ADMIN
-  @Column({ name: 'hub_id', nullable: true })
-  hubId: number;
+  // Hub relationship (for HUB_EMPLOYEE only)
+  @ManyToOne(() => Hub, (hub) => hub.employees, { nullable: true })
+  @JoinColumn({ name: 'hubAdminId' })
+  hub: Hub;
 
-  @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: 'hub_id' })
-  hubAdmin: User;
+  @Column({ name: 'hubAdminId', nullable: true })
+  hubAdminId: number;
 
-  // 👇 HUB_ADMIN can have many HUB_EMPLOYEE
-  @OneToMany(() => User, (user) => user.hubAdmin)
-  hubEmployees: User[];
   @CreateDateColumn()
   createdAt: Date;
 
@@ -71,24 +67,19 @@ export class User {
   @Column({ nullable: true })
   deviceToken: string;
 
-  @Column({ nullable: true })
-  firebaseUserId: string;
-
   @OneToMany(() => Notification, (notification) => notification.user)
   notifications: Notification[];
 
-  // Add this property in your User entity class
-  // Modify the city relationship in your User entity
-
-  // Inside your User class, add:
+  // User's city (for delivery men, vendors, etc.)
   @ApiPropertyOptional({
     description: "User's city/location",
-    type: () => City, // Lazy function
+    type: () => City,
   })
   @ManyToOne(() => City, (city) => city.users, {
     nullable: true,
     eager: true,
   })
+  @JoinColumn({ name: 'city_id' })
   city: City;
 
   @Column({ type: 'int', nullable: true, default: 556 })

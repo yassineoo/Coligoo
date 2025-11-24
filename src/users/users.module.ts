@@ -12,10 +12,11 @@ import { AdminController } from './admin.controller';
 import { HubAdminController } from './admin-hub.controller';
 import { City } from 'src/wilaya/entities/city.entity';
 import { BadRequestException } from '@nestjs/common';
+import { Hub } from 'src/hub/entities/hub.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, City]),
+    TypeOrmModule.forFeature([User, City, Hub]),
     EnvConfigModule,
     MulterModule.register({
       dest: './uploads/profile-images',

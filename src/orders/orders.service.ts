@@ -1610,10 +1610,13 @@ export class OrdersService {
       });
     } else if (type === IncomingOrderType.MANUAL_ENTRY) {
       // Orders created by this hub or its staff
-      query = query.andWhere('(order.hubId = :hubId OR sender.id = :userId)', {
-        hubId: user.userId,
-        userId: user.userId,
-      });
+      query = query.andWhere(
+        '(order.hubAdminId = :hubAdminId OR sender.id = :userId)',
+        {
+          hubAdminId: user.userId,
+          userId: user.userId,
+        },
+      );
     } else if (type === IncomingOrderType.INTER_HUB) {
       // Orders from other hubs with status COLLECTED
       query = query
@@ -1623,7 +1626,9 @@ export class OrdersService {
         .andWhere('sender.role IN (:...hubRoles)', {
           hubRoles: [UserRole.HUB_ADMIN, UserRole.HUB_EMPLOYEE],
         })
-        .andWhere('order.hubId != :hubId', { hubId: user.userId });
+        .andWhere('order.hubAdminId != :hubAdminId', {
+          hubAdminId: user.userId,
+        });
     }
 
     // Additional filters
@@ -1719,8 +1724,8 @@ export class OrdersService {
 
     // Base filter: orders created by this hub (going OUT from here)
     query = query.where(
-      '(order.hubId = :hubId OR order.fromCityId = :cityId)',
-      { hubId: user.userId, cityId: hubUser.city.id },
+      '(order.hubAdminId = :hubAdminId OR order.fromCityId = :cityId)',
+      { hubAdminId: user.userId, cityId: hubUser.city.id },
     );
 
     // Filter by outgoing type

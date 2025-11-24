@@ -155,7 +155,7 @@ export class AuthService {
   }
 
   async changePhone(dto: changePhoneDto, userId: number) {
-    const { phone, firebaseUserId } = dto;
+    const { phone, code } = dto;
 
     // Check if the new phone number already exists
     const existingUser = await this.usersService.findUserByPhone(phone, true);
@@ -175,7 +175,7 @@ export class AuthService {
     // Update user's phone number and Firebase UID
     const updateData = {
       phoneNumber: phone,
-      firebaseUserId: firebaseUserId,
+      firebaseUserId: code,
       isPhoneVerified: true, // Assuming phone verification happens via Firebase
     };
 
@@ -218,37 +218,6 @@ export class AuthService {
       });
     }
   }
-  /*
-
-
-  registerVendor
-  async registerArtisan(registerDto: ArtisanRegisterDto) {
-    const user = await this.usersService.createArtisan({
-      ...registerDto,
-      role: Role.ARTISAN,
-    });
-    // await this.artisanService.createArtisan(user);
-    const code = await this.otpService.createOtp(
-      user.email,
-      OtpType.VERIFY_EMAIL,
-    );
-    this.mailService.sendVerficationCodeEmail(
-      user.email,
-      code.toString(),
-      OtpType.VERIFY_EMAIL,
-    );
-    await this.adminNotificationService.createNewUserNotification();
-    const token = await this.jwtService.signAsync({
-      id: user.id,
-      email: user.email,
-    });
-    if (registerDto.deviceToken) {
-      await this.usersService.update(user.id, {
-        deviceToken: registerDto.deviceToken,
-      });
-    }
-    return { message: 'Inscription réussie', token };
-  }*/
 
   async adminLogin(loginDto: LoginDto) {
     const user = await this.usersService.findUserByEmail(loginDto.email, true);
@@ -274,30 +243,6 @@ export class AuthService {
     return { message: 'Connexion réussie', token };
   }
 
-  // async getAuthUrl() {
-  //     const url = this.client.generateAuthUrl({
-  //         access_type: 'offline',
-  //         scope: ['profile', 'email']
-  //     });
-  //     return {url};
-  // }
-
-  // async getToken(code: string) {
-  //     const {tokens} = await this.client.getToken(code);
-  //     const ticket = await this.client.verifyIdToken({
-  //         idToken: tokens.id_token,
-  //         audience: this.googleConfig.getGoogleClientId()
-  //     });
-  //     const payload = ticket.getPayload();
-  //     const user = {
-  //         email: payload.email,
-  //         nom: payload.family_name,
-  //         prenom: payload.given_name,
-  //         picture: payload.picture
-  //     }
-  //     return await this.googleAuth(user, UserRole.CLIENT);
-  // }
-
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
     const user = await this.usersService.findUserByEmail(verifyEmailDto.email);
     if (!user) {
@@ -316,18 +261,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
     });
-    /*  if (user.role === Role.ARTISAN) {
-      const artisan = await this.artisanService.findOne(user.id);
-      artisanInfo = {
-        isProfileCompleted: artisan.isProfileCompleted,
-        isProfileVerified: artisan.isProfileVerified,
-        hasBadge: artisan.badgeStatus === BadgeStatus.ACTIF,
-        profileCompletionStep: artisan.profileCompletionStep,
-        longitude: artisan.longitude,
-        latitude: artisan.latitude,
-      };
-    }
-      */
+
     return {
       message: 'Email vérifié avec succès',
       token,

@@ -193,7 +193,7 @@ export class OrderTrackingService {
 
         // Update order status and assign hub
         order.status = OrderStatus.DEPOSITED_AT_HUB;
-        order.hubId = user.userId;
+        order.hubAdminId = user.userId;
         order.shippedAt = new Date();
 
         await this.orderRepository.save(order);

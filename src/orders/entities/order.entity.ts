@@ -268,7 +268,7 @@ export class Order {
   hub: User;
 
   @Column({ nullable: true })
-  hubId: number;
+  hubAdminId: number;
 
   // Computed properties
   get totalProductsPrice(): number {

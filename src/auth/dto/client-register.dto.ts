@@ -11,5 +11,5 @@ export class ClientRegisterDto extends RegisterDto {
   @ApiProperty({ example: 'QSDQSDQSDQSQD' })
   @IsOptional()
   @IsString()
-  firebaseUserId?: string;
+  code?: string;
 }

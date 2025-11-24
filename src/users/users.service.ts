@@ -17,6 +17,7 @@ import { UserFilterDto } from './dto/user-filter.dto';
 import { dateCalculator } from 'src/common/utils/date-calculator';
 import { UserRole } from 'src/common/types/roles.enum';
 import { City } from 'src/wilaya/entities/city.entity';
+import { Hub } from 'src/hub/entities/hub.entity';
 
 @Injectable()
 export class UsersService {
@@ -26,6 +27,9 @@ export class UsersService {
 
     @InjectRepository(City)
     private readonly cityRepository: Repository<City>,
+
+    @InjectRepository(Hub)
+    private readonly hubRepository: Repository<Hub>,
   ) {}
   async createClient(createUserDto: CreateClientUserDto) {
     const userExist = await this.usersRepository.findOneBy({
@@ -376,7 +380,14 @@ export class UsersService {
       where: {
         id: userId,
       },
-      relations: ['hubAdmin', 'hubEmployees', 'city', 'city.wilaya'], // Add relations if needed
+      relations: [
+        'hub', // Hub relationship for employees
+        'hub.admin', // Hub admin info
+        'hub.city', // Hub's city
+        'hub.city.wilaya', // Hub's wilaya
+        'city', // User's own city (for delivery men, vendors)
+        'city.wilaya', // User's wilaya
+      ],
     });
 
     if (!user) {
@@ -385,34 +396,74 @@ export class UsersService {
 
     console.log('usersss', user);
 
+    // Check if user is a hub admin by querying their hub
+    let managedHub = null;
+    let hubEmployeesCount = 0;
+
+    if (user.role === UserRole.HUB_ADMIN) {
+      managedHub = await this.hubRepository.findOne({
+        where: { adminUserId: user.id },
+        relations: ['employees', 'city', 'city.wilaya'],
+      });
+      hubEmployeesCount = managedHub?.employees?.length ?? 0;
+    }
+
     return {
       id: user.id,
       email: user.email,
       nom: user.nom,
       prenom: user.prenom,
       fullName: user.fullName,
-      address: user.address,
 
-      city: user.city,
-      role: user.role,
-      permissions: user.permissions,
-      hubId: user.hubId,
-      hubAdmin: user.hubAdmin
+      // Hub info (for employees and admins)
+      hub: user.hub
         ? {
-            id: user.hubAdmin.id,
-            nom: user.hubAdmin.nom,
-            prenom: user.hubAdmin.prenom,
-            email: user.hubAdmin.email,
+            id: user.hub.id,
+            name: user.hub.name,
+            address: user.hub.address,
+            latitude: user.hub.latitude,
+            longitude: user.hub.longitude,
+            city: user.hub.city,
+            isActive: user.hub.isActive,
+          }
+        : managedHub
+        ? {
+            id: managedHub.id,
+            name: managedHub.name,
+            address: managedHub.address,
+            latitude: managedHub.latitude,
+            longitude: managedHub.longitude,
+            city: managedHub.city,
+            isActive: managedHub.isActive,
           }
         : null,
+
+      // User's own city (for delivery men, vendors, etc.)
+      city: user.city,
+
+      role: user.role,
+      permissions: user.permissions,
+      hubAdminId: user.hubAdminId,
+
+      // Hub admin info (for employees)
+      hubAdmin: user.hub?.admin
+        ? {
+            id: user.hub.admin.id,
+            nom: user.hub.admin.nom,
+            prenom: user.hub.admin.prenom,
+            email: user.hub.admin.email,
+          }
+        : null,
+
       createdAt: user.createdAt,
       phoneNumber: user.phoneNumber,
       isEmailVerified: user.isEmailVerified,
       imgUrl: user.imgUrl,
       blocked: user.blocked,
       deviceToken: user.deviceToken,
-      // Optional: include count of hub employees if user is a hub admin
-      hubEmployeesCount: user.hubEmployees?.length ?? 0,
+
+      // Hub employees count (if user is hub admin)
+      hubEmployeesCount: hubEmployeesCount,
     };
   }
 

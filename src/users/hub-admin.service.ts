@@ -69,7 +69,7 @@ export class HubAdminService {
       ...createHubEmployeeDto,
       password: hashedPassword,
       role: UserRole.HUB_EMPLOYEE,
-      hubId: hubAdminId, // Link employee to this hub admin
+      hubAdminId: hubAdminId, // Link employee to this hub admin
       imgUrl: createHubEmployeeDto.fileName
         ? `${this.appConfig.getAppUrl()}/api/v1/images/profile-images/${
             createHubEmployeeDto.fileName
@@ -180,7 +180,7 @@ export class HubAdminService {
 
     const queryBuilder = this.usersRepository
       .createQueryBuilder('user')
-      .where('user.hubId = :hubAdminId', { hubAdminId })
+      .where('user.hubAdminId = :hubAdminId', { hubAdminId })
       .andWhere('user.role = :role', { role: UserRole.HUB_EMPLOYEE });
 
     // Search functionality
@@ -223,7 +223,7 @@ export class HubAdminService {
         'user.isEmailVerified',
         'user.imgUrl',
         'user.blocked',
-        'user.hubId',
+        'user.hubAdminId',
       ])
       .skip((page - 1) * pageSize)
       .take(pageSize)
@@ -243,7 +243,7 @@ export class HubAdminService {
     const employee = await this.usersRepository.findOne({
       where: {
         id: employeeId,
-        hubId: hubAdminId,
+        hubAdminId: hubAdminId,
         role: UserRole.HUB_EMPLOYEE,
       },
       select: [
@@ -252,7 +252,6 @@ export class HubAdminService {
         'nom',
         'prenom',
         'fullName',
-        'address',
         'role',
         'permissions',
         'createdAt',
@@ -260,7 +259,7 @@ export class HubAdminService {
         'isEmailVerified',
         'imgUrl',
         'blocked',
-        'hubId',
+        'hubAdminId',
       ],
       relations: ['city', 'city.wilaya'],
     });
@@ -340,25 +339,25 @@ export class HubAdminService {
       verifiedEmployees,
     ] = await Promise.all([
       this.usersRepository.count({
-        where: { hubId: hubAdminId, role: UserRole.HUB_EMPLOYEE },
+        where: { hubAdminId: hubAdminId, role: UserRole.HUB_EMPLOYEE },
       }),
       this.usersRepository.count({
         where: {
-          hubId: hubAdminId,
+          hubAdminId: hubAdminId,
           role: UserRole.HUB_EMPLOYEE,
           blocked: false,
         },
       }),
       this.usersRepository.count({
         where: {
-          hubId: hubAdminId,
+          hubAdminId: hubAdminId,
           role: UserRole.HUB_EMPLOYEE,
           blocked: true,
         },
       }),
       this.usersRepository.count({
         where: {
-          hubId: hubAdminId,
+          hubAdminId: hubAdminId,
           role: UserRole.HUB_EMPLOYEE,
           isEmailVerified: true,
         },
@@ -384,7 +383,7 @@ export class HubAdminService {
     // Verify that all employees belong to this HUB_ADMIN
     const employees = await this.usersRepository.find({
       where: {
-        hubId: hubAdminId,
+        hubAdminId: hubAdminId,
         role: UserRole.HUB_EMPLOYEE,
       },
       select: ['id'],
@@ -406,7 +405,7 @@ export class HubAdminService {
       .update(User)
       .set({ blocked })
       .where('id IN (:...employeeIds)', { employeeIds: filteredEmployeeIds })
-      .andWhere('hubId = :hubAdminId', { hubAdminId })
+      .andWhere('hubAdminId = :hubAdminId', { hubAdminId })
       .andWhere('role = :role', { role: UserRole.HUB_EMPLOYEE })
       .execute();
 
@@ -428,7 +427,7 @@ export class HubAdminService {
     // Verify that all employees belong to this HUB_ADMIN
     const employees = await this.usersRepository.find({
       where: {
-        hubId: hubAdminId,
+        hubAdminId: hubAdminId,
         role: UserRole.HUB_EMPLOYEE,
       },
       select: ['id'],
@@ -450,7 +449,7 @@ export class HubAdminService {
       .delete()
       .from(User)
       .where('id IN (:...employeeIds)', { employeeIds: filteredEmployeeIds })
-      .andWhere('hubId = :hubAdminId', { hubAdminId })
+      .andWhere('hubAdminId = :hubAdminId', { hubAdminId })
       .andWhere('role = :role', { role: UserRole.HUB_EMPLOYEE })
       .execute();
 

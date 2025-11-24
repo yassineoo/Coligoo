@@ -27,7 +27,7 @@ export class changePhoneDto {
     example: 'firebase-uid-123456789',
     description: 'Unique Firebase user ID for authentication',
   })
-  firebaseUserId: string;
+  code: string;
 }
 
 // New DTOs for phone-based authentication

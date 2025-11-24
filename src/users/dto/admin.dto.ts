@@ -244,7 +244,7 @@ export class CreateAdminUserDto {
   })
   @IsOptional()
   @IsNumber()
-  hubId?: number;
+  hubAdminId?: number;
 
   @ApiPropertyOptional({
     description: 'User permissions',

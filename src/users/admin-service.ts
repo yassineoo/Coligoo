@@ -41,20 +41,22 @@ export class AdminService {
       });
     }
 
-    // Validate hubId for HUB_EMPLOYEE
+    // Validate hubAdminId for HUB_EMPLOYEE
     if (createAdminUserDto.role === UserRole.HUB_EMPLOYEE) {
-      if (!createAdminUserDto.hubId) {
+      if (!createAdminUserDto.hubAdminId) {
         throw new BadRequestException(
-          'hubId is required for HUB_EMPLOYEE role',
+          'hubAdminId is required for HUB_EMPLOYEE role',
         );
       }
 
       const hubAdmin = await this.usersRepository.findOne({
-        where: { id: createAdminUserDto.hubId, role: UserRole.HUB_ADMIN },
+        where: { id: createAdminUserDto.hubAdminId, role: UserRole.HUB_ADMIN },
       });
 
       if (!hubAdmin) {
-        throw new BadRequestException('Invalid hubId: Hub admin not found');
+        throw new BadRequestException(
+          'Invalid hubAdminId: Hub admin not found',
+        );
       }
     }
 
@@ -69,6 +71,9 @@ export class AdminService {
     return user;
   }
 
+  /**
+   * Get all users with filtering and pagination
+   */
   /**
    * Get all users with filtering and pagination
    */
@@ -118,31 +123,38 @@ export class AdminService {
     // Get total count
     const total = await queryBuilder.getCount();
 
-    // Apply pagination and ordering with relations for HUB_EMPLOYEE
+    // Apply pagination and ordering with relations
     const users = await queryBuilder
-      .leftJoinAndSelect('user.hubAdmin', 'hubAdmin')
-      .select([
-        'user.id',
-        'user.email',
-        'user.nom',
-        'user.prenom',
-        'user.fullName',
-        'user.role',
-        'user.permissions',
-        'user.createdAt',
-        'user.phoneNumber',
-        'user.isEmailVerified',
-        'user.imgUrl',
-        'user.blocked',
-        'user.hubId',
+      .leftJoin('user.hub', 'hub')
+      .leftJoin('hub.admin', 'hubAdmin')
+      .leftJoin('user.city', 'city')
+      .leftJoin('city.wilaya', 'wilaya')
+      .addSelect([
+        // Hub info (for employees)
+        'hub.id',
+        'hub.name',
+        'hub.address',
+      ])
+      .addSelect([
+        // Hub admin info
         'hubAdmin.id',
         'hubAdmin.nom',
         'hubAdmin.prenom',
         'hubAdmin.email',
       ])
+      .addSelect([
+        // City info
+        'city.id',
+        'city.name',
+      ])
+      .addSelect([
+        // Wilaya info
+        'wilaya.code',
+        'wilaya.name',
+      ])
       .skip((page - 1) * pageSize)
       .take(pageSize)
-      .orderBy(`user.${orderBy}`, order)
+      .orderBy(`user.${orderBy}`, order) // ✅ Fixed syntax error here
       .getMany();
 
     return new PaginatedResponse(users, total, page, pageSize);
@@ -259,7 +271,7 @@ export class AdminService {
         'isEmailVerified',
         'imgUrl',
         'blocked',
-        'hubId',
+        'hubAdminId',
       ],
     });
 
@@ -293,18 +305,23 @@ export class AdminService {
       }
     }
 
-    // Validate hubId for HUB_EMPLOYEE
+    // Validate hubAdminId for HUB_EMPLOYEE
     if (
       updateAdminUserDto.role === UserRole.HUB_EMPLOYEE ||
-      (updateAdminUserDto.hubId && user.role === UserRole.HUB_EMPLOYEE)
+      (updateAdminUserDto.hubAdminId && user.role === UserRole.HUB_EMPLOYEE)
     ) {
-      if (updateAdminUserDto.hubId) {
+      if (updateAdminUserDto.hubAdminId) {
         const hubAdmin = await this.usersRepository.findOne({
-          where: { id: updateAdminUserDto.hubId, role: UserRole.HUB_ADMIN },
+          where: {
+            id: updateAdminUserDto.hubAdminId,
+            role: UserRole.HUB_ADMIN,
+          },
         });
 
         if (!hubAdmin) {
-          throw new BadRequestException('Invalid hubId: Hub admin not found');
+          throw new BadRequestException(
+            'Invalid hubAdminId: Hub admin not found',
+          );
         }
       }
     }
@@ -364,7 +381,7 @@ export class AdminService {
     // Check if user has employees (for HUB_ADMIN)
     if (user.role === UserRole.HUB_ADMIN) {
       const employeeCount = await this.usersRepository.count({
-        where: { hubId: id, role: UserRole.HUB_EMPLOYEE },
+        where: { hubAdminId: id, role: UserRole.HUB_EMPLOYEE },
       });
 
       if (employeeCount > 0) {
@@ -462,7 +479,7 @@ export class AdminService {
 
     const queryBuilder = this.usersRepository
       .createQueryBuilder('user')
-      .where('user.hubId = :hubAdminId', { hubAdminId })
+      .where('user.hubAdminId = :hubAdminId', { hubAdminId })
       .andWhere('user.role = :role', { role: UserRole.HUB_EMPLOYEE });
 
     // Search functionality
@@ -505,7 +522,7 @@ export class AdminService {
         'user.isEmailVerified',
         'user.imgUrl',
         'user.blocked',
-        'user.hubId',
+        'user.hubAdminId',
       ])
       .skip((page - 1) * pageSize)
       .take(pageSize)
