@@ -340,14 +340,27 @@ export class HubAdminService {
   /**
    * Get a specific employee - only if they belong to this HUB_ADMIN
    */
+  /**
+   * Get a specific employee - only if they belong to this HUB_ADMIN's hub
+   */
   async findEmployeeById(
     employeeId: number,
     hubAdminId: number,
   ): Promise<User> {
+    // 1. Get the admin's hub first
+    const hub = await this.hubRepository.findOne({
+      where: { adminUserId: hubAdminId },
+    });
+
+    if (!hub) {
+      throw new NotFoundException('Hub not found for this admin');
+    }
+
+    // 2. Find employee and verify they belong to the same hub
     const employee = await this.usersRepository.findOne({
       where: {
         id: employeeId,
-        hubAdminId: hubAdminId,
+        hubAdminId: hub.id, // ✅ Use hub.id, not admin user ID
         role: UserRole.HUB_EMPLOYEE,
       },
       select: [
@@ -364,17 +377,24 @@ export class HubAdminService {
         'imgUrl',
         'blocked',
         'hubAdminId',
+        'cityId', // Include even though it's null for employees
       ],
-      relations: ['city', 'city.wilaya'],
+      relations: [
+        'hub', // ✅ Hub relationship (where employee works)
+        'hub.city', // ✅ Hub's city (employee inherits this)
+        'hub.city.wilaya', // ✅ Hub's wilaya
+        'hub.admin', // ✅ Optional: include hub admin info
+      ],
     });
 
     if (!employee) {
-      throw new NotFoundException('Employee not found or access denied');
+      throw new NotFoundException(
+        'Employee not found or does not belong to your hub',
+      );
     }
 
     return employee;
   }
-
   /**
    * Update employee status (block/unblock) - only if they belong to this HUB_ADMIN
    */
