@@ -19,6 +19,7 @@ import { PaginatedResponse } from 'src/common/utils/paginated-response';
 import { rmSync } from 'fs';
 import path from 'path';
 import { AppConfig } from 'src/config/app.config';
+import { Hub } from 'src/hub/entities/hub.entity';
 
 @Injectable()
 export class HubAdminService {
@@ -26,6 +27,8 @@ export class HubAdminService {
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
     private readonly appConfig: AppConfig,
+    @InjectRepository(Hub)
+    private readonly hubRepository: Repository<Hub>,
   ) {}
 
   /**
@@ -36,21 +39,30 @@ export class HubAdminService {
 
   /**
    * Create a new hub employee - Only HUB_ADMIN can create HUB_EMPLOYEE
+   * Automatically links employee to the admin's hub
    */
   async createHubEmployee(
     createHubEmployeeDto: CreateTeamMemberDto,
     hubAdminId: number,
   ): Promise<User> {
-    // Verify that the current user is actually a HUB_ADMIN
-    const hubAdmin = await this.usersRepository.findOne({
-      where: { id: hubAdminId, role: UserRole.HUB_ADMIN },
+    // 1. Find the hub where this user is the admin
+    const hub = await this.hubRepository.findOne({
+      where: { adminUserId: hubAdminId },
+      relations: ['admin'],
     });
 
-    if (!hubAdmin) {
+    if (!hub) {
+      throw new ForbiddenException(
+        'You must be a hub admin to create employees',
+      );
+    }
+
+    // 2. Verify the user has HUB_ADMIN role
+    if (hub.admin.role !== UserRole.HUB_ADMIN) {
       throw new ForbiddenException('Only HUB_ADMIN can create hub employees');
     }
 
-    // Check if email already exists
+    // 3. Check if email already exists
     const userExist = await this.usersRepository.findOneBy({
       email: createHubEmployeeDto.email,
     });
@@ -65,40 +77,56 @@ export class HubAdminService {
 
     const hashedPassword = await Hash.hash(createHubEmployeeDto.password);
 
+    // 4. Create employee and automatically link to the SAME hub as the admin
     const employee = this.usersRepository.create({
-      ...createHubEmployeeDto,
+      email: createHubEmployeeDto.email,
       password: hashedPassword,
+      nom: createHubEmployeeDto.nom,
+      prenom: createHubEmployeeDto.prenom,
+      fullName: `${createHubEmployeeDto.prenom || ''} ${
+        createHubEmployeeDto.nom || ''
+      }`.trim(),
+      phoneNumber: createHubEmployeeDto.phoneNumber,
       role: UserRole.HUB_EMPLOYEE,
-      hubAdminId: hubAdminId, // Link employee to this hub admin
+      hubAdminId: hub.id, // ✅ Link to the SAME hub ID as the admin
+      permissions: createHubEmployeeDto.permissions || [],
       imgUrl: createHubEmployeeDto.fileName
         ? `${this.appConfig.getAppUrl()}/api/v1/images/profile-images/${
             createHubEmployeeDto.fileName
           }`
         : null,
+      cityId: null, // ✅ Hub employees don't need their own city
     });
 
-    console.log(
-      employee,
-      `${this.appConfig.getAppUrl()}/api/v1/images/profile-images/${
-        createHubEmployeeDto.fileName
-      }`,
-    );
+    console.log('Creating employee for hub:', hub.id, hub.name);
+    console.log('Employee data:', employee);
 
-    await this.usersRepository.save(employee);
-    return employee;
+    const savedEmployee = await this.usersRepository.save(employee);
+
+    // 5. Return employee with hub info
+    return await this.usersRepository.findOne({
+      where: { id: savedEmployee.id },
+      relations: ['hub', 'hub.city', 'hub.city.wilaya'],
+    });
   }
 
   /**
-   * Update an employee - only if they belong to this HUB_ADMIN
+   * Update an employee - only if they belong to the SAME hub as the admin
    */
   async updateEmployee(
     employeeId: number,
     hubAdminId: number,
     updateHubEmployeeDto: UpdateTeamMemberDto,
   ): Promise<User> {
+    // 1. Verify employee belongs to admin's hub
     const employee = await this.findEmployeeById(employeeId, hubAdminId);
 
-    // Check if email is being changed and if it's already in use
+    // 2. Get the admin's hub to ensure consistency
+    const hub = await this.hubRepository.findOne({
+      where: { adminUserId: hubAdminId },
+    });
+
+    // 3. Check if email is being changed and if it's already in use
     if (
       updateHubEmployeeDto.email &&
       updateHubEmployeeDto.email !== employee.email
@@ -117,7 +145,7 @@ export class HubAdminService {
 
     let imgUrl = '';
 
-    // Handle profile image update
+    // 4. Handle profile image update
     if (updateHubEmployeeDto.fileName) {
       // Delete old image if exists
       if (employee.imgUrl) {
@@ -145,22 +173,70 @@ export class HubAdminService {
       }`;
     }
 
-    // Hash password if provided
+    // 5. Hash password if provided
     if (updateHubEmployeeDto.password) {
       updateHubEmployeeDto.password = await Hash.hash(
         updateHubEmployeeDto.password,
       );
     }
 
-    Object.assign(employee, updateHubEmployeeDto);
+    // 6. Update employee fields
+    if (updateHubEmployeeDto.email) employee.email = updateHubEmployeeDto.email;
+    if (updateHubEmployeeDto.password)
+      employee.password = updateHubEmployeeDto.password;
+    if (updateHubEmployeeDto.nom) employee.nom = updateHubEmployeeDto.nom;
+    if (updateHubEmployeeDto.prenom)
+      employee.prenom = updateHubEmployeeDto.prenom;
+    if (updateHubEmployeeDto.nom || updateHubEmployeeDto.prenom) {
+      employee.fullName = `${employee.prenom || ''} ${
+        employee.nom || ''
+      }`.trim();
+    }
+    if (updateHubEmployeeDto.phoneNumber)
+      employee.phoneNumber = updateHubEmployeeDto.phoneNumber;
+    if (updateHubEmployeeDto.permissions)
+      employee.permissions = updateHubEmployeeDto.permissions;
 
     if (imgUrl) {
       employee.imgUrl = imgUrl;
     }
 
-    return await this.usersRepository.save(employee);
+    // 7. IMPORTANT: Ensure employee stays linked to the SAME hub
+    employee.hubAdminId = hub.id; // ✅ Maintain hub link
+    employee.cityId = null; // ✅ Employees use hub's city, not their own
+
+    const updatedEmployee = await this.usersRepository.save(employee);
+
+    // 8. Return with hub relations
+    return await this.usersRepository.findOne({
+      where: { id: updatedEmployee.id },
+      relations: ['hub', 'hub.city', 'hub.city.wilaya'],
+    });
   }
 
+  /**
+   * Get all employees for the admin's hub
+   */
+  async findAllEmployees(hubAdminId: number): Promise<User[]> {
+    // 1. Get the admin's hub
+    const hub = await this.hubRepository.findOne({
+      where: { adminUserId: hubAdminId },
+    });
+
+    if (!hub) {
+      throw new NotFoundException('Hub not found for this admin');
+    }
+
+    // 2. Find all employees in the SAME hub
+    return await this.usersRepository.find({
+      where: {
+        role: UserRole.HUB_EMPLOYEE,
+        hubAdminId: hub.id, // ✅ Only employees in THIS hub
+      },
+      relations: ['hub', 'hub.city', 'hub.city.wilaya'],
+      order: { createdAt: 'DESC' },
+    });
+  }
   /**
    * Get all employees for a specific HUB_ADMIN
    */

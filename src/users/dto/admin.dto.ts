@@ -48,14 +48,6 @@ export class CreateTeamMemberDto {
   nom?: string;
 
   @ApiPropertyOptional({
-    description: 'Full address',
-    example: '123 Rue de la Liberté, Alger, Algérie',
-  })
-  @IsOptional()
-  @IsString()
-  address?: string;
-
-  @ApiPropertyOptional({
     description: 'Phone number',
     example: '+213549461543',
   })
@@ -70,15 +62,6 @@ export class CreateTeamMemberDto {
   })
   @IsEnum(UserRole)
   role: UserRole;
-
-  @ApiProperty({
-    description: 'City ID where the team member is located',
-    example: 556,
-  })
-  @IsNumber()
-  @IsNotEmpty()
-  @Type(() => Number) // 👈 This ensures it's converted from string to number
-  cityId: number;
 
   @ApiPropertyOptional({
     description: 'Team member permissions',
