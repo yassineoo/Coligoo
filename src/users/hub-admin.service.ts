@@ -327,7 +327,7 @@ export class HubAdminService {
         'city.id',
         'city.name',
         // Wilaya info (from hub)
-        'wilaya.id',
+        'wilaya.code',
         'wilaya.name',
       ])
       .skip((page - 1) * pageSize)
