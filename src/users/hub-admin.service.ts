@@ -240,6 +240,10 @@ export class HubAdminService {
   /**
    * Get all employees for a specific HUB_ADMIN
    */
+  /**
+   * Get all employees for a specific HUB_ADMIN
+   * Automatically extracts hub from admin and returns employees with hub info
+   */
   async findMyEmployees(
     hubAdminId: number,
     filterDto: HubEmployeeFilterDto,
@@ -254,9 +258,19 @@ export class HubAdminService {
       order = 'DESC',
     } = filterDto;
 
+    // 1. First, get the admin's hub
+    const hub = await this.hubRepository.findOne({
+      where: { adminUserId: hubAdminId },
+    });
+
+    if (!hub) {
+      throw new NotFoundException('Hub not found for this admin');
+    }
+
+    // 2. Query employees belonging to this hub
     const queryBuilder = this.usersRepository
       .createQueryBuilder('user')
-      .where('user.hubAdminId = :hubAdminId', { hubAdminId })
+      .where('user.hubAdminId = :hubId', { hubId: hub.id }) // ✅ Use hub.id
       .andWhere('user.role = :role', { role: UserRole.HUB_EMPLOYEE });
 
     // Search functionality
@@ -284,8 +298,11 @@ export class HubAdminService {
     // Get total count
     const total = await queryBuilder.getCount();
 
-    // Apply pagination and ordering
+    // 3. Apply pagination and ordering with hub relations
     const employees = await queryBuilder
+      .leftJoin('user.hub', 'hub')
+      .leftJoin('hub.city', 'city')
+      .leftJoin('city.wilaya', 'wilaya')
       .select([
         'user.id',
         'user.email',
@@ -300,6 +317,18 @@ export class HubAdminService {
         'user.imgUrl',
         'user.blocked',
         'user.hubAdminId',
+        // Hub info (inherited location)
+        'hub.id',
+        'hub.name',
+        'hub.address',
+        'hub.latitude',
+        'hub.longitude',
+        // City info (from hub)
+        'city.id',
+        'city.name',
+        // Wilaya info (from hub)
+        'wilaya.id',
+        'wilaya.name',
       ])
       .skip((page - 1) * pageSize)
       .take(pageSize)
@@ -308,7 +337,6 @@ export class HubAdminService {
 
     return new PaginatedResponse(employees, total, page, pageSize);
   }
-
   /**
    * Get a specific employee - only if they belong to this HUB_ADMIN
    */
