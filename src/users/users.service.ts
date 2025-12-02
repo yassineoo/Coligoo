@@ -262,7 +262,7 @@ export class UsersService {
 
     // Handle profile image
     if (updateUserInfoDto.filename) {
-      const imgUrl = `${this.appConfig.getAppUrl()}/api/v1/images/profile-image/${
+      const imgUrl = `${this.appConfig.getAppUrl()}/api/v1/images/profile-images/${
         updateUserInfoDto.filename
       }`;
       user.imgUrl = imgUrl;
