@@ -11,7 +11,6 @@ import { Order, OrderStatus } from '../orders/entities/order.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateWithdrawalRequestDto } from './dto/create-fincance.dto';
 import {
-  WithdrawalCondition,
   WithdrawalRequest,
   WithdrawalStatus,
 } from './entities/fincance.entity';
@@ -106,7 +105,6 @@ export class FinanceService {
       paidOrderCount: paidOrders.length,
       returnedOrderCount: returnedOrders.length,
       status: WithdrawalStatus.PENDING,
-      condition: WithdrawalCondition.WAITING,
       notes: dto.notes,
     });
 
@@ -143,7 +141,6 @@ export class FinanceService {
       page = 1,
       limit = 10,
       status,
-      condition,
       vendorId,
       dateFrom,
       dateTo,
@@ -165,10 +162,6 @@ export class FinanceService {
     // Apply filters
     if (status) {
       query = query.andWhere('request.status = :status', { status });
-    }
-
-    if (condition) {
-      query = query.andWhere('request.condition = :condition', { condition });
     }
 
     if (vendorId && user.role === UserRole.ADMIN) {
@@ -252,16 +245,9 @@ export class FinanceService {
     const request = await this.findOne(id);
 
     if (dto.status !== undefined) request.status = dto.status;
-    if (dto.condition !== undefined) request.condition = dto.condition;
     if (dto.paymentDate !== undefined)
       request.paymentDate = new Date(dto.paymentDate);
     if (dto.notes !== undefined) request.notes = dto.notes;
-
-    // Auto-update condition when payment is completed
-    if (dto.status === WithdrawalStatus.APPROVED && !request.paymentDate) {
-      request.paymentDate = new Date();
-      request.condition = WithdrawalCondition.COMPLETE;
-    }
 
     return this.withdrawalRepo.save(request);
   }
@@ -310,7 +296,7 @@ export class FinanceService {
       (r) => r.status === WithdrawalStatus.APPROVED,
     );
     const completedRequests = allRequests.filter(
-      (r) => r.condition === WithdrawalCondition.COMPLETE,
+      (r) => r.status === WithdrawalStatus.APPROVED,
     );
 
     const totalPaymentToBeMade = pendingRequests.reduce(

@@ -6,4 +6,5 @@ export enum UserRole {
   MODERATOR = 'moderator',
   HUB_EMPLOYEE = 'hub_employee',
   DELIVERYMAN = 'deliveryman',
+  PICKUP_POINT_ADMIN = 'pickup_point_admin',
 }

@@ -12,6 +12,7 @@ import { OrderItem } from 'src/orders/entities/order-items';
 import { OrderTracking } from 'src/orders/entities/order-tracking.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrderTrackingService } from 'src/orders/tracking.service';
+import { PickupPoint } from 'src/pickup-point/entities/pickup-point.entity';
 import { Product } from 'src/products/entities/product.entity';
 import { Setting } from 'src/settings/entities/setting.entity';
 import { ShippingZone } from 'src/shipping/entities/shipping-zone.entity';
@@ -51,6 +52,7 @@ import { Wilaya } from 'src/wilaya/entities/wilaya.entity';
           WithdrawalRequest,
           Locker,
           Hub,
+          PickupPoint,
         ],
       }),
       inject: [DatabaseConfig],

@@ -30,10 +30,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { FinanceService } from './fincance.service';
 import { FinanceStatisticsDto, WithdrawalFilterDto } from './dto/filter.dto';
 import { CreateWithdrawalRequestDto } from './dto/create-fincance.dto';
-import {
-  WithdrawalCondition,
-  WithdrawalStatus,
-} from './entities/fincance.entity';
+import { WithdrawalStatus } from './entities/fincance.entity';
 import { UpdateWithdrawalRequestDto } from './dto/update-fincance.dto';
 
 @ApiTags('Finance')
@@ -128,7 +125,6 @@ export class FinanceController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'status', required: false, enum: WithdrawalStatus })
-  @ApiQuery({ name: 'condition', required: false, enum: WithdrawalCondition })
   @ApiQuery({ name: 'vendorId', required: false, type: Number })
   @ApiQuery({ name: 'dateFrom', required: false, type: String })
   @ApiQuery({ name: 'dateTo', required: false, type: String })

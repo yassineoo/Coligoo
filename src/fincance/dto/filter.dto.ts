@@ -10,10 +10,7 @@ import {
   Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import {
-  WithdrawalCondition,
-  WithdrawalStatus,
-} from '../entities/fincance.entity';
+import { WithdrawalStatus } from '../entities/fincance.entity';
 // src/finance/dto/finance-statistics.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 export class WithdrawalFilterDto {
@@ -36,11 +33,6 @@ export class WithdrawalFilterDto {
   @IsOptional()
   @IsEnum(WithdrawalStatus)
   status?: WithdrawalStatus;
-
-  @ApiPropertyOptional({ enum: WithdrawalCondition })
-  @IsOptional()
-  @IsEnum(WithdrawalCondition)
-  condition?: WithdrawalCondition;
 
   @ApiPropertyOptional({ example: 1, description: 'Filter by vendor ID' })
   @IsOptional()

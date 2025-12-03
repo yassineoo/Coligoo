@@ -19,12 +19,6 @@ export enum WithdrawalStatus {
   REJECTED = 'rejected',
 }
 
-export enum WithdrawalCondition {
-  WAITING = 'waiting',
-  COMPLETE = 'complete',
-  CANCELLED = 'cancelled',
-}
-
 @Entity('withdrawal_requests')
 export class WithdrawalRequest {
   @ApiProperty({ example: 1 })
@@ -86,17 +80,6 @@ export class WithdrawalRequest {
     default: WithdrawalStatus.PENDING,
   })
   status: WithdrawalStatus;
-
-  @ApiProperty({
-    enum: WithdrawalCondition,
-    example: WithdrawalCondition.WAITING,
-  })
-  @Column({
-    type: 'enum',
-    enum: WithdrawalCondition,
-    default: WithdrawalCondition.WAITING,
-  })
-  condition: WithdrawalCondition;
 
   @ApiProperty({
     description: 'Orders linked to this withdrawal request',

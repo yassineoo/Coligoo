@@ -20,6 +20,7 @@ import { SettingsModule } from './settings/settings.module';
 import { FincanceModule } from './fincance/fincance.module';
 import { LockersModule } from './lockers/lockers.module';
 import { HubModule } from './hub/hub.module';
+import { PickupPointModule } from './pickup-point/pickup-point.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { HubModule } from './hub/hub.module';
     FincanceModule,
     LockersModule,
     HubModule,
+    PickupPointModule,
   ],
   controllers: [],
   providers: [AppService, SeederService],
