@@ -55,7 +55,7 @@ export class ShippingFee {
   homePrice: number;
 
   @ApiProperty({ example: 600, description: 'Locker delivery price' })
-  @Column('decimal', { precision: 10, scale: 2, default: 600 })
+  @Column('decimal', { precision: 10, scale: 2, default: 550 })
   lockerPrice: number;
 
   @ApiProperty({ example: 500, description: 'Return shipping price' })
