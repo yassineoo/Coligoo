@@ -3,7 +3,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order, OrderStatus, TransmissionType } from './entities/order.entity';
-import { OrderTracking } from './entities/order-tracking.entity';
+import { OrderMovements } from './entities/order-tracking.entity';
 import {
   BulkDepositOrdersDto,
   BulkDepositResultDto,
@@ -24,8 +24,8 @@ interface TrackingEntryData {
 @Injectable()
 export class OrderTrackingService {
   constructor(
-    @InjectRepository(OrderTracking)
-    private readonly trackingRepository: Repository<OrderTracking>,
+    @InjectRepository(OrderMovements)
+    private readonly trackingRepository: Repository<OrderMovements>,
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
     @InjectRepository(User)
@@ -52,7 +52,7 @@ export class OrderTrackingService {
     */
   }
 
-  async getTrackingHistory(orderId: number): Promise<OrderTracking[]> {
+  async getTrackingHistory(orderId: number): Promise<OrderMovements[]> {
     return await this.trackingRepository.find({
       where: { orderId },
       relations: ['updatedBy'],
@@ -60,7 +60,7 @@ export class OrderTrackingService {
     });
   }
 
-  async getLatestTracking(orderId: number): Promise<OrderTracking | null> {
+  async getLatestTracking(orderId: number): Promise<OrderMovements | null> {
     return await this.trackingRepository.findOne({
       where: { orderId },
       relations: ['updatedBy'],

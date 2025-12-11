@@ -9,7 +9,7 @@ import { Locker } from 'src/lockers/entities/locker.entity';
 import { AdminNotification } from 'src/notification/entities/admin-notification.entity';
 import { Notification } from 'src/notification/entities/notification.entity';
 import { OrderItem } from 'src/orders/entities/order-items';
-import { OrderTracking } from 'src/orders/entities/order-tracking.entity';
+import { OrderMovements } from 'src/orders/entities/order-tracking.entity';
 import { Order } from 'src/orders/entities/order.entity';
 import { OrderTrackingService } from 'src/orders/tracking.service';
 import { PickupPoint } from 'src/pickup-point/entities/pickup-point.entity';
@@ -43,7 +43,7 @@ import { Wilaya } from 'src/wilaya/entities/wilaya.entity';
           Notification,
           AdminNotification,
           Order,
-          OrderTracking,
+          OrderMovements,
           Product,
           OrderItem,
           ShippingFee,

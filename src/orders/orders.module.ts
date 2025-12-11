@@ -5,7 +5,7 @@ import { Order } from './entities/order.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EnvConfigModule } from 'src/config/config.module';
 import { User } from 'src/users/entities/user.entity';
-import { OrderTracking } from './entities/order-tracking.entity';
+import { OrderMovements } from './entities/order-tracking.entity';
 import { OrderTrackingService } from './tracking.service';
 import { UsersModule } from 'src/users/users.module';
 import { OrderItem } from './entities/order-items';
@@ -20,7 +20,7 @@ import { TrackingController } from './tracking.controller';
     TypeOrmModule.forFeature([
       User,
       Order,
-      OrderTracking,
+      OrderMovements,
       OrderItem,
       Product,
       City,

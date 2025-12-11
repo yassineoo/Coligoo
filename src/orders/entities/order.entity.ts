@@ -17,7 +17,7 @@ import { City } from 'src/wilaya/entities/city.entity';
 import { User } from 'src/users/entities/user.entity';
 import { OrderItem } from './order-items';
 import { WithdrawalRequest } from 'src/fincance/entities/fincance.entity';
-import { OrderTracking } from './order-tracking.entity';
+import { OrderMovements } from './order-tracking.entity';
 
 export enum OrderStatus {
   IN_PREPARATION = 'in_preparation',
@@ -300,10 +300,10 @@ export class Order {
   @Column({ nullable: true })
   hubAdminId: number;
 
-  @OneToMany(() => OrderTracking, (movement) => movement.order, {
+  @OneToMany(() => OrderMovements, (movement) => movement.order, {
     cascade: true,
   })
-  trackingHistory: OrderTracking[];
+  trackingHistory: OrderMovements[];
 
   // Computed properties
   get totalProductsPrice(): number {

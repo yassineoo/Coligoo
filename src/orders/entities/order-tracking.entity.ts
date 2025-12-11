@@ -40,11 +40,11 @@ export enum TrackingAction {
   PAID = 'paid',
 }
 
-@Entity('order_tracking')
+@Entity('order_movements')
 @Index(['orderId', 'timestamp'])
 @Index(['locationType', 'hubId'])
 @Index(['locationType', 'pickupPointId'])
-export class OrderTracking {
+export class OrderMovements {
   @PrimaryGeneratedColumn()
   id: number;
 
