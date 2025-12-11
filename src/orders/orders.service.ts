@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder, In, Between } from 'typeorm';
-import { Order, OrderStatus } from './entities/order.entity';
+import { DeliveryMethod, Order, OrderStatus } from './entities/order.entity';
 import { CreateOrderDto, OrderItemsDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { User } from 'src/users/entities/user.entity';
@@ -55,7 +55,8 @@ export class OrdersService {
       dateFrom,
       dateTo,
       search,
-      isStopDesk,
+      deliveryMethod,
+      transmissionType,
       hasExchange,
       sortBy = 'createdAt',
       sortOrder = 'DESC',
@@ -105,9 +106,18 @@ export class OrdersService {
       });
     }
 
-    // NEW: Filter by isStopDesk
-    if (isStopDesk !== undefined) {
-      query = query.andWhere('order.isStopDesk = :isStopDesk', { isStopDesk });
+    //deliveryMethod,transmissionType,
+
+    // NEW: Filter by DeliveryMethod
+    if (deliveryMethod !== undefined) {
+      query = query.andWhere('order.deliveryMethod = :deliveryMethod', {
+        deliveryMethod,
+      });
+    }
+    if (transmissionType !== undefined) {
+      query = query.andWhere('order.transmissionType = :transmissionType', {
+        transmissionType,
+      });
     }
 
     // NEW: Filter by hasExchange
@@ -1085,8 +1095,7 @@ export class OrdersService {
       order.weight || 0,
       `${order.height || 0}×${order.width || 0}×${order.length || 0}`,
       order.paymentType,
-      order.isStopDesk ? 'Yes' : 'No',
-      order.freeShipping ? 'Yes' : 'No',
+      order.deliveryMethod,
       order.hasExchange ? 'Yes' : 'No',
       order.createdAt.toISOString().split('T')[0],
       order.deliveredAt ? order.deliveredAt.toISOString().split('T')[0] : '',
@@ -1731,13 +1740,13 @@ export class OrdersService {
     // Filter by outgoing type
     if (type === OutgoingOrderType.STOP_DESK) {
       // Pickup at hub
-      query = query.andWhere('order.isStopDesk = :isStopDesk', {
-        isStopDesk: true,
+      query = query.andWhere('order.DeliveryMethod = :DeliveryMethod', {
+        DeliveryMethod: DeliveryMethod.STOPDESK,
       });
     } else if (type === OutgoingOrderType.DELIVERY) {
       // Home delivery
-      query = query.andWhere('order.isStopDesk = :isStopDesk', {
-        isStopDesk: false,
+      query = query.andWhere('order.DeliveryMethod = :DeliveryMethod', {
+        DeliveryMethod: DeliveryMethod.DOMICILE,
       });
     } else if (type === OutgoingOrderType.INTER_HUB) {
       // Orders to other hubs with status DEPOSITED_AT_HUB

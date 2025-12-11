@@ -17,6 +17,7 @@ import { City } from 'src/wilaya/entities/city.entity';
 import { User } from 'src/users/entities/user.entity';
 import { OrderItem } from './order-items';
 import { WithdrawalRequest } from 'src/fincance/entities/fincance.entity';
+import { OrderTracking } from './order-tracking.entity';
 
 export enum OrderStatus {
   IN_PREPARATION = 'in_preparation',
@@ -51,6 +52,22 @@ export enum PaymentType {
   PREPAID = 'prepaid',
 }
 
+// ✅ Ajouter un enum pour Transmission Type
+export enum TransmissionType {
+  HUB = 'hub',
+  PICKUP_POINT = 'pickup_point',
+  LOCKER = 'locker',
+}
+
+// ✅ Ajouter un enum pour Order Type (delivery method)
+export enum DeliveryMethod {
+  DOMICILE = 'domicile', // Home delivery
+  STOPDESK = 'stopdesk', // Pickup at hub
+  PICKUP_POINT = 'pickup_point', // Pickup at pickup point
+  LOCKER = 'locker', // Pickup at locker
+  NORMAL = 'normal',
+  EXCHANGE = 'exchange',
+}
 @Entity('orders')
 export class Order {
   @ApiProperty({ example: 1 })
@@ -149,16 +166,29 @@ export class Order {
   @Column({ nullable: true })
   length: number;
 
+  // ✅ NOUVEAU : Méthode de livraison (comment le client reçoit)
   @ApiProperty({
-    example: false,
-    description: 'true = pickup from hub, false = home delivery',
+    enum: DeliveryMethod,
+    example: DeliveryMethod.DOMICILE,
+    description: 'How customer receives the order',
   })
-  @Column({ default: false })
-  isStopDesk: boolean;
-
-  @ApiProperty({ example: false })
-  @Column({ default: false })
-  freeShipping: boolean;
+  @Column({
+    type: 'enum',
+    enum: DeliveryMethod,
+    default: DeliveryMethod.DOMICILE,
+  })
+  deliveryMethod: DeliveryMethod;
+  @ApiProperty({
+    enum: TransmissionType,
+    example: TransmissionType.HUB,
+    description: 'Where vendor sends the order (Hub, Pickup Point, or Locker)',
+  })
+  @Column({
+    type: 'enum',
+    enum: TransmissionType,
+    default: TransmissionType.HUB,
+  })
+  transmissionType: TransmissionType;
 
   @ApiProperty({ example: false })
   @Column({ default: false })
@@ -269,6 +299,11 @@ export class Order {
 
   @Column({ nullable: true })
   hubAdminId: number;
+
+  @OneToMany(() => OrderTracking, (movement) => movement.order, {
+    cascade: true,
+  })
+  trackingHistory: OrderTracking[];
 
   // Computed properties
   get totalProductsPrice(): number {

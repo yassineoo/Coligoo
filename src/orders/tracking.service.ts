@@ -2,7 +2,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Order, OrderStatus } from './entities/order.entity';
+import { Order, OrderStatus, TransmissionType } from './entities/order.entity';
 import { OrderTracking } from './entities/order-tracking.entity';
 import {
   BulkDepositOrdersDto,
@@ -35,7 +35,9 @@ export class OrderTrackingService {
   async addTrackingEntry(
     orderId: number,
     data: TrackingEntryData,
-  ): Promise<OrderTracking> {
+    // ): Promise<OrderTracking> {
+  ) {
+    /*
     const tracking = this.trackingRepository.create({
       orderId,
       status: data.status,
@@ -47,6 +49,7 @@ export class OrderTrackingService {
     });
 
     return await this.trackingRepository.save(tracking);
+    */
   }
 
   async getTrackingHistory(orderId: number): Promise<OrderTracking[]> {
@@ -126,7 +129,8 @@ export class OrderTrackingService {
         toCity: order.toCity,
         price: Number(order.price),
         weight: order.weight ? Number(order.weight) : null,
-        isStopDesk: order.isStopDesk,
+        deliveryMethod: order.deliveryMethod,
+        TransmissionType: order.transmissionType,
         hasExchange: order.hasExchange,
         orderItems: order.orderItems,
       },
@@ -197,7 +201,7 @@ export class OrderTrackingService {
         order.shippedAt = new Date();
 
         await this.orderRepository.save(order);
-
+        /*
         // Create tracking record
         const tracking = this.trackingRepository.create({
           orderId: order.id,
@@ -208,7 +212,7 @@ export class OrderTrackingService {
         });
 
         await this.trackingRepository.save(tracking);
-
+*/
         successfulOrders.push(orderId);
       } catch (error) {
         failedOrders.push({

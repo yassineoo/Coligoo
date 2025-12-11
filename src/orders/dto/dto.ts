@@ -13,7 +13,11 @@ import {
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { OrderStatus } from '../entities/order.entity';
+import {
+  DeliveryMethod,
+  OrderStatus,
+  TransmissionType,
+} from '../entities/order.entity';
 
 export class OrderFilterDto {
   @ApiPropertyOptional({ example: 1, minimum: 1 })
@@ -107,13 +111,22 @@ export class OrderFilterDto {
   search?: string;
 
   @ApiPropertyOptional({
-    example: true,
-    description: 'Filter by stop desk (pickup at hub)',
+    enum: DeliveryMethod,
+    example: DeliveryMethod.STOPDESK,
+    description: 'Filter by delivery method',
   })
   @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  isStopDesk?: boolean;
+  @IsEnum(DeliveryMethod)
+  deliveryMethod?: DeliveryMethod;
+
+  @ApiPropertyOptional({
+    enum: TransmissionType,
+    example: TransmissionType.HUB,
+    description: 'Filter by transmission type',
+  })
+  @IsOptional()
+  @IsEnum(TransmissionType)
+  transmissionType?: TransmissionType;
 
   @ApiPropertyOptional({
     example: true,

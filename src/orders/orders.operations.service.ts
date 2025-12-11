@@ -134,8 +134,9 @@ export class OrdersOperationsService {
         length: createOrderDto.length,
         */
         discount: createOrderDto.discount || 0,
-        isStopDesk: createOrderDto.isStopDesk,
-        freeShipping: createOrderDto.freeShipping,
+        deliveryMethod: createOrderDto.deliveryMethod,
+        transmissionType: createOrderDto.transmissionType,
+
         hasExchange: createOrderDto.hasExchange,
         paymentType: createOrderDto.paymentType,
         shippingFee: 600, // Will be calculated when cities are assigned
@@ -245,8 +246,10 @@ export class OrdersOperationsService {
         width: originalOrder.width,
         length: originalOrder.length,
         */
-        isStopDesk: originalOrder.isStopDesk,
-        freeShipping: originalOrder.freeShipping,
+
+        deliveryMethod: originalOrder.deliveryMethod,
+        transmissionType: originalOrder.transmissionType,
+
         hasExchange: originalOrder.hasExchange,
         paymentType: originalOrder.paymentType,
       };
@@ -269,8 +272,9 @@ export class OrdersOperationsService {
         length: originalOrder.length,
         */
         discount: originalOrder.discount,
-        isStopDesk: originalOrder.isStopDesk,
-        freeShipping: originalOrder.freeShipping,
+        deliveryMethod: originalOrder.deliveryMethod,
+        transmissionType: originalOrder.transmissionType,
+
         hasExchange: originalOrder.hasExchange,
         paymentType: originalOrder.paymentType,
       };

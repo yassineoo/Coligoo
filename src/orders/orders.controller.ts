@@ -30,7 +30,12 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/auth/guards/jwt.guard';
 import { UserRole } from 'src/common/types/roles.enum';
-import { Order, OrderStatus } from './entities/order.entity';
+import {
+  DeliveryMethod,
+  Order,
+  OrderStatus,
+  TransmissionType,
+} from './entities/order.entity';
 import {
   AssignDeliverymanDto,
   BulkUpdateOrderDto,
@@ -204,10 +209,16 @@ export class OrdersController {
     description: 'Search in order ID, customer name, phone',
   })
   @ApiQuery({
-    name: 'isStopDesk',
+    name: 'DeliveryMethod',
     required: false,
-    type: Boolean,
+    enum: DeliveryMethod,
     description: 'Filter by stop desk (pickup at hub)',
+  })
+  @ApiQuery({
+    name: 'TransmissionType',
+    required: false,
+    enum: TransmissionType,
+    description: 'Filter by Transmission Type (pickup at hub)',
   })
   @ApiQuery({
     name: 'hasExchange',

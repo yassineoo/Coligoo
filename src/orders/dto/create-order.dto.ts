@@ -12,7 +12,11 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PaymentType } from '../entities/order.entity';
+import {
+  DeliveryMethod,
+  PaymentType,
+  TransmissionType,
+} from '../entities/order.entity';
 
 export class OrderItemsDto {
   @ApiProperty({
@@ -178,7 +182,7 @@ export class CreateOrderDto {
   discount?: number;
 
   // -------- Optional fields --------
-  /*
+
   @ApiPropertyOptional({ example: 6 })
   @IsOptional()
   @IsNumber()
@@ -200,17 +204,23 @@ export class CreateOrderDto {
   @IsNumber()
   length?: number;
 
-  */
-
-  @ApiPropertyOptional({ example: false })
+  @ApiPropertyOptional({
+    enum: DeliveryMethod,
+    example: DeliveryMethod.STOPDESK,
+    description: 'Filter by delivery method',
+  })
   @IsOptional()
-  @IsBoolean()
-  isStopDesk?: boolean;
+  @IsEnum(DeliveryMethod)
+  deliveryMethod?: DeliveryMethod;
 
-  @ApiPropertyOptional({ example: false })
+  @ApiPropertyOptional({
+    enum: TransmissionType,
+    example: TransmissionType.HUB,
+    description: 'Filter by transmission type',
+  })
   @IsOptional()
-  @IsBoolean()
-  freeShipping?: boolean;
+  @IsEnum(TransmissionType)
+  transmissionType?: TransmissionType;
 
   @ApiPropertyOptional({ example: false })
   @IsOptional()
