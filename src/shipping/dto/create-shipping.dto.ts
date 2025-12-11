@@ -27,6 +27,11 @@ export class CreateShippingFeeDto {
   @Min(0)
   homePrice: number;
 
+  @ApiProperty({ example: 550 })
+  @IsNumber()
+  @Min(0)
+  lockerPrice: number;
+
   @ApiProperty({ example: 500 })
   @IsNumber()
   @Min(0)

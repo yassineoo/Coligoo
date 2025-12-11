@@ -109,6 +109,11 @@ export class SetAllPricesDto {
   @Min(0)
   homePrice: number;
 
+  @ApiProperty({ example: 600 })
+  @IsNumber()
+  @Min(0)
+  lockerPrice: number;
+
   @ApiProperty({ example: 500 })
   @IsNumber()
   @Min(0)

@@ -374,6 +374,7 @@ export class ShippingController {
       example: {
         desktopPrice: 450,
         homePrice: 650,
+        lockerPrice: 600,
         returnPrice: 500,
         zoneName: 'Zone Centre',
         zoneId: 1,

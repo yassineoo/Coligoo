@@ -161,6 +161,8 @@ export class ShippingService {
     // Update basic shipping fee fields
     if (dto.desktopPrice !== undefined) fee.desktopPrice = dto.desktopPrice;
     if (dto.homePrice !== undefined) fee.homePrice = dto.homePrice;
+    if (dto.lockerPrice !== undefined) fee.lockerPrice = dto.lockerPrice;
+
     if (dto.returnPrice !== undefined) fee.returnPrice = dto.returnPrice;
     if (dto.isActive !== undefined) fee.isActive = dto.isActive;
 
@@ -312,6 +314,8 @@ export class ShippingService {
         if (fee) {
           fee.desktopPrice = dto.desktopPrice;
           fee.homePrice = dto.homePrice;
+          fee.lockerPrice = dto.lockerPrice;
+
           fee.returnPrice = dto.returnPrice;
           await this.shippingFeeRepo.save(fee);
           updated++;
@@ -323,6 +327,7 @@ export class ShippingService {
             toWilaya,
             desktopPrice: dto.desktopPrice,
             homePrice: dto.homePrice,
+            lockerPrice: dto.lockerPrice,
             returnPrice: dto.returnPrice,
             isActive: true,
           });
@@ -362,6 +367,7 @@ export class ShippingService {
       if (fee) {
         fee.desktopPrice = dto.desktopPrice;
         fee.homePrice = dto.homePrice;
+        fee.lockerPrice = dto.lockerPrice;
         fee.returnPrice = dto.returnPrice;
         await this.shippingFeeRepo.save(fee);
         updated++;
@@ -373,6 +379,8 @@ export class ShippingService {
           toWilaya,
           desktopPrice: dto.desktopPrice,
           homePrice: dto.homePrice,
+          lockerPrice: dto.lockerPrice,
+
           returnPrice: dto.returnPrice,
           isActive: true,
         });
@@ -394,6 +402,7 @@ export class ShippingService {
       if (fee) {
         fee.desktopPrice = dto.desktopPrice;
         fee.homePrice = dto.homePrice;
+        fee.lockerPrice = dto.lockerPrice;
         fee.returnPrice = dto.returnPrice;
         await this.shippingFeeRepo.save(fee);
         updated++;
@@ -405,6 +414,7 @@ export class ShippingService {
           toWilaya: wilaya,
           desktopPrice: dto.desktopPrice,
           homePrice: dto.homePrice,
+          lockerPrice: dto.lockerPrice,
           returnPrice: dto.returnPrice,
           isActive: true,
         });
@@ -438,6 +448,7 @@ export class ShippingService {
             toWilaya,
             desktopPrice: 500,
             homePrice: 600,
+            lockerPrice: 550,
             returnPrice: 300,
             isActive: true,
           });
@@ -683,6 +694,7 @@ export class ShippingService {
   ): Promise<{
     desktopPrice: number;
     homePrice: number;
+    lockerPrice: number;
     returnPrice: number;
     zoneName?: string;
     zoneId?: number;
@@ -703,6 +715,7 @@ export class ShippingService {
     }
 
     let homePrice = Number(fee.homePrice);
+    let lockerPrice = Number(fee.lockerPrice);
     let zoneName: string | undefined;
     let zoneId: number | undefined;
 
@@ -723,6 +736,7 @@ export class ShippingService {
     return {
       desktopPrice: Number(fee.desktopPrice),
       homePrice,
+      lockerPrice,
       returnPrice: Number(fee.returnPrice),
       zoneName,
       zoneId,
