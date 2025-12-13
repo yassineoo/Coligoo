@@ -32,7 +32,7 @@ export class PickupPointController {
   constructor(private readonly pickupPointService: PickupPointService) {}
 
   @Post()
-  @Roles(UserRole.HUB_ADMIN)
+  @Roles(UserRole.HUB_ADMIN, UserRole.ADMIN)
   @ApiOperation({ summary: 'Create new pickup point (Hub Admin only)' })
   create(
     @Body() createPickupPointDto: CreatePickupPointDto,
