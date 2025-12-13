@@ -17,7 +17,6 @@ import { UserRole } from 'src/common/types/roles.enum';
 import { Hash } from 'src/users/utils/hash';
 import { QueryPickupPointDto } from './dto/filter.dto';
 import { City } from 'src/wilaya/entities/city.entity';
-import { Hub } from 'src/hub/entities/hub.entity';
 
 @Injectable()
 export class PickupPointService {
@@ -30,9 +29,6 @@ export class PickupPointService {
 
     @InjectRepository(City)
     private readonly cityRepository: Repository<City>,
-
-    @InjectRepository(Hub)
-    private readonly hubRepository: Repository<Hub>,
   ) {}
 
   /**
@@ -50,24 +46,6 @@ export class PickupPointService {
       throw new NotFoundException('Utilisateur non trouvé');
     }
 
-    // ✅ Vérifier que l'utilisateur est un hub admin
-    if (currentUser.role !== UserRole.HUB_ADMIN) {
-      throw new ForbiddenException(
-        'Seul un Hub Admin peut créer un Pickup Point',
-      );
-    }
-
-    // ✅ Vérifier que le hub admin a bien un hub
-    const hub = await this.hubRepository.findOne({
-      where: { adminUserId: currentUser.id },
-    });
-
-    if (!hub) {
-      // ✅ Vérifier que le hub admin a bien un hub
-      throw new BadRequestException(
-        "Vous devez être admin d'un Hub pour créer un Pickup Point",
-      );
-    }
     const {
       name,
       address,
@@ -132,7 +110,6 @@ export class PickupPointService {
         cityId,
         phoneNumber,
         notes,
-        hubId: hub.id, // Hub du créateur
         adminUserId: savedAdmin.id,
         isActive: isActive !== undefined ? isActive : true,
       });
@@ -144,10 +121,10 @@ export class PickupPointService {
       // ✅ Fetch complete pickup point with relations
       const completePickupPoint = await this.pickupPointRepository.findOne({
         where: { id: savedPickupPoint.id },
-        relations: ['admin', 'hub', 'city', 'city.wilaya'],
+        relations: ['admin', 'city', 'city.wilaya'],
       });
 
-      // ✅ Return flattened structure (backward compatible avec Hub)
+      // ✅ Return flattened structure
       return this.flattenPickupPointData(completePickupPoint);
     } catch (error) {
       // ✅ Si la création du pickup point échoue, supprimer l'admin créé
@@ -169,7 +146,6 @@ export class PickupPointService {
 
   /**
    * Get all pickup points with flattened data
-   * - Hub Admin : seulement ses pickup points
    * - Pickup Point Admin : seulement son pickup point
    * - Super Admin : tous les pickup points
    */
@@ -181,7 +157,6 @@ export class PickupPointService {
       sortBy = 'createdAt',
       sortOrder = 'DESC',
       wilayaCode,
-      hubId,
     } = queryDto;
 
     const skip = (page - 1) * limit;
@@ -203,24 +178,10 @@ export class PickupPointService {
       };
     }
 
-    // Hub filter
-    if (hubId) {
-      where.hubId = hubId;
-    }
-    /*
-    // ✅ Permission filters
-    if (currentUser.role === UserRole.HUB_ADMIN) {
-      // Hub admin voit seulement ses pickup points
-      where.hubId = currentUser.hubAdminId;
-    } else if (currentUser.role === UserRole.PICKUP_POINT_ADMIN) {
-      // Pickup point admin voit seulement son pickup point
-      where.adminUserId = currentUser.id;
-    }
-*/
     const [pickupPoints, total] = await this.pickupPointRepository.findAndCount(
       {
         where,
-        relations: ['admin', 'hub', 'city', 'city.wilaya'],
+        relations: ['admin', 'city', 'city.wilaya'],
         order: { [sortBy]: sortOrder },
         skip,
         take: limit,
@@ -258,7 +219,7 @@ export class PickupPointService {
     }
     const pickupPoint = await this.pickupPointRepository.findOne({
       where: { id },
-      relations: ['admin', 'hub', 'city', 'city.wilaya'],
+      relations: ['admin', 'city', 'city.wilaya'],
     });
 
     if (!pickupPoint) {
@@ -285,7 +246,7 @@ export class PickupPointService {
   async findByAdminUserId(adminUserId: number) {
     const pickupPoint = await this.pickupPointRepository.findOne({
       where: { adminUserId },
-      relations: ['admin', 'hub', 'city', 'city.wilaya'],
+      relations: ['admin', 'city', 'city.wilaya'],
     });
 
     if (!pickupPoint) {
@@ -314,7 +275,7 @@ export class PickupPointService {
 
     const pickupPoint = await this.pickupPointRepository.findOne({
       where: { id },
-      relations: ['admin', 'hub'],
+      relations: ['admin'],
     });
 
     if (!pickupPoint) {
@@ -322,16 +283,14 @@ export class PickupPointService {
     }
 
     // ✅ Permission check
-    if (currentUser.role === UserRole.HUB_ADMIN) {
-      console.log('some feature check to improve');
-    } else if (currentUser.role === UserRole.PICKUP_POINT_ADMIN) {
+
+    if (currentUser.role === UserRole.PICKUP_POINT_ADMIN) {
       if (pickupPoint.adminUserId !== currentUser.id) {
         throw new ForbiddenException(
           'Vous ne pouvez pas modifier ce Pickup Point',
         );
       }
     }
-
     const {
       name,
       address,
@@ -426,7 +385,7 @@ export class PickupPointService {
     // ✅ Fetch updated pickup point with relations
     const updatedPickupPoint = await this.pickupPointRepository.findOne({
       where: { id },
-      relations: ['admin', 'hub', 'city', 'city.wilaya'],
+      relations: ['admin', 'city', 'city.wilaya'],
     });
 
     return this.flattenPickupPointData(updatedPickupPoint);
@@ -442,7 +401,7 @@ export class PickupPointService {
     // Find pickup point by admin user ID
     const pickupPoint = await this.pickupPointRepository.findOne({
       where: { adminUserId },
-      relations: ['admin', 'hub', 'city', 'city.wilaya'],
+      relations: ['admin', 'city', 'city.wilaya'],
     });
 
     if (!pickupPoint) {
@@ -532,7 +491,7 @@ export class PickupPointService {
     // Fetch updated pickup point with relations
     const updatedPickupPoint = await this.pickupPointRepository.findOne({
       where: { id: pickupPoint.id },
-      relations: ['admin', 'hub', 'city', 'city.wilaya'],
+      relations: ['admin', 'city', 'city.wilaya'],
     });
 
     return this.flattenPickupPointData(updatedPickupPoint);
@@ -552,9 +511,7 @@ export class PickupPointService {
     }
 
     // ✅ Seul le hub admin peut supprimer
-    if (currentUser.role === UserRole.HUB_ADMIN) {
-      console.log('sothinmg');
-    } else if (currentUser.role !== UserRole.ADMIN) {
+    if (currentUser.role !== UserRole.ADMIN) {
       throw new ForbiddenException(
         'Seul le Hub Admin peut supprimer un Pickup Point',
       );
@@ -569,18 +526,6 @@ export class PickupPointService {
     await this.userRepository.delete(adminUserId);
 
     return { message: 'Pickup Point and admin user deleted successfully' };
-  }
-
-  /**
-   * Get all pickup points for a specific hub
-   */
-  async findByHub(hubId: number) {
-    const pickupPoints = await this.pickupPointRepository.find({
-      where: { hubId },
-      relations: ['admin', 'city', 'city.wilaya'],
-    });
-
-    return pickupPoints.map((pp) => this.flattenPickupPointData(pp));
   }
 
   /**
@@ -601,16 +546,6 @@ export class PickupPointService {
       isActive: pickupPoint.isActive,
       createdAt: pickupPoint.createdAt,
       updatedAt: pickupPoint.updatedAt,
-
-      // Hub info
-      hubId: pickupPoint.hubId,
-      hub: pickupPoint.hub
-        ? {
-            id: pickupPoint.hub.id,
-            name: pickupPoint.hub.name,
-            address: pickupPoint.hub.address,
-          }
-        : null,
 
       // Admin user fields (flattened)
       email: pickupPoint.admin?.email,

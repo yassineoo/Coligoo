@@ -84,13 +84,6 @@ export class PickupPointController {
     );
   }
 
-  @Get('hub/:hubId')
-  @Roles(UserRole.ADMIN, UserRole.HUB_ADMIN)
-  @ApiOperation({ summary: 'Get all pickup points for a specific hub' })
-  findByHub(@Param('hubId') hubId: string) {
-    return this.pickupPointService.findByHub(+hubId);
-  }
-
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.HUB_ADMIN, UserRole.PICKUP_POINT_ADMIN)
   @ApiOperation({ summary: 'Get pickup point by ID' })

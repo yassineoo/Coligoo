@@ -38,14 +38,6 @@ export class PickupPoint {
   @Column({ name: 'admin_user_id' })
   adminUserId: number;
 
-  // ✅ Hub parent (celui qui a créé ce pickup point)
-  @ManyToOne(() => Hub, { nullable: false, eager: true })
-  @JoinColumn({ name: 'hub_id' })
-  hub: Hub;
-
-  @Column({ name: 'hub_id' })
-  hubId: number;
-
   // ✅ Localisation
   @ManyToOne(() => City, { nullable: true, eager: true })
   @JoinColumn({ name: 'city_id' })
